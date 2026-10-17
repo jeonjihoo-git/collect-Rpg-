@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <CheckFlavor>Player</CheckFlavor>
+    <DefineConstants>ENABLE_LEGACY_INPUT_MANAGER;UNITY_2021_3_OR_NEWER;UNITY_ANDROID</DefineConstants>
+  </PropertyGroup>
+  <Import Project="../Common.props" />
+</Project>

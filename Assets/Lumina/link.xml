@@ -1,0 +1,4 @@
+<linker>
+  <!-- IL2CPP 코드 스트리핑 시 JSON 역직렬화 대상(정의/저장 데이터) 보존 -->
+  <assembly fullname="Lumina.Core" preserve="all" />
+</linker>

@@ -1,0 +1,22 @@
+name: core-ci
+# Unity 없이 돌 수 있는 검증: 코어 테스트, 헤드리스 전체 흐름, Unity 스크립트 컴파일 검사
+on:
+  push:
+  pull_request:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Core tests (NUnit)
+        run: dotnet test tools/Lumina.Core.Tests --nologo
+      - name: Headless flow (lobby → stage → party → battle → result → save)
+        run: dotnet run --project tools/Lumina.Sim -- flow sim_out/save
+      - name: Unity runtime compile check (player)
+        run: dotnet build tools/UnityCompileCheck/Player/UnityCompileCheck.Player.csproj --nologo
+      - name: Unity editor compile check
+        run: dotnet build tools/UnityCompileCheck/Editor/UnityCompileCheck.Editor.csproj --nologo

@@ -162,7 +162,7 @@ namespace Lumina.Runtime.UI
 
             // 좌: 모험
             var left = Ui.Rect(safe, "Adventure");
-            Ui.Box(left, 0f, 0.5f, 60f, 20f, 620f, 420f);
+            Ui.Box(left, 0f, 0.5f, 60f, -10f, 620f, 420f);
             left.pivot = new Vector2(0f, 0.5f);
             Ui.Panel(left, "Bg", Theme.Panel, false);
             var lt = Ui.Label(left, "모험", 34, Theme.Text, TextAnchor.UpperLeft, FontStyle.Bold);
@@ -174,7 +174,7 @@ namespace Lumina.Runtime.UI
 
             // 우: 파티
             var right = Ui.Rect(safe, "Party");
-            Ui.Box(right, 1f, 0.5f, -60f, 20f, 620f, 420f);
+            Ui.Box(right, 1f, 0.5f, -60f, -10f, 620f, 420f);
             right.pivot = new Vector2(1f, 0.5f);
             Ui.Panel(right, "Bg", Theme.Panel, false);
             var rt = Ui.Label(right, "현재 파티", 34, Theme.Text, TextAnchor.UpperLeft, FontStyle.Bold);

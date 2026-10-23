@@ -31,10 +31,14 @@ namespace Lumina.Runtime.UI
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null) return;
             var go = new GameObject("EventSystem");
             go.AddComponent<EventSystem>();
-#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
-            go.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
-#else
+#if ENABLE_LEGACY_INPUT_MANAGER
             go.AddComponent<StandaloneInputModule>();
+#else
+            // 구 Input Manager 가 꺼진 프로젝트: Input System 의 UI 모듈을 리플렉션으로 추가(패키지 직접 참조 없음)
+            var module = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+            if (module != null) go.AddComponent(module);
+            else Debug.LogError("[Lumina] 구 Input Manager 가 꺼져 있고 Input System 패키지도 없어 UI 입력이 동작하지 않습니다. " +
+                                "Edit > Project Settings > Player > Other Settings > Active Input Handling 을 'Both' 로 바꾸고 Unity 를 재시작하세요.");
 #endif
             UnityEngine.Object.DontDestroyOnLoad(go);
         }

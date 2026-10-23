@@ -20,3 +20,7 @@ jobs:
         run: dotnet build tools/UnityCompileCheck/Player/UnityCompileCheck.Player.csproj --nologo
       - name: Unity editor compile check
         run: dotnet build tools/UnityCompileCheck/Editor/UnityCompileCheck.Editor.csproj --nologo
+      - name: Unity compile check (Input System only, legacy input off)
+        run: |
+          dotnet build tools/UnityCompileCheck/Player/UnityCompileCheck.Player.csproj --nologo "-p:DefineConstants=ENABLE_INPUT_SYSTEM%3BUNITY_2021_3_OR_NEWER"
+          dotnet build tools/UnityCompileCheck/Editor/UnityCompileCheck.Editor.csproj --nologo "-p:DefineConstants=UNITY_EDITOR%3BENABLE_INPUT_SYSTEM%3BUNITY_2021_3_OR_NEWER"

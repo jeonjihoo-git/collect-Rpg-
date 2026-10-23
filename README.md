@@ -12,11 +12,14 @@
 
 ## 1. Windows에서 실행 (Unity)
 
-1. Unity Hub에서 **Unity 6 LTS(6000.0.x)** 를 설치하고, Android 빌드가 필요하면 *Android Build Support* 모듈도 함께 설치합니다.
-2. Unity Hub → **Add → Add project from disk** → 이 저장소 폴더를 선택합니다. 다른 6000.x 버전으로 열어도 됩니다(버전 변경 확인 창이 뜨면 진행).
+1. Unity Hub에서 **Unity 6 LTS(6000.0.x)** 를 설치하고, Android 빌드가 필요하면 *Android Build Support* 모듈도 함께 설치합니다. (6000.0 기준으로 작성. 6.x 상위 버전으로 열면 패키지가 자동 업그레이드되며, 그 조합은 아직 실행 검증 전입니다.)
+2. Unity Hub → **Add → Add project from disk** → **`Assets`·`Packages`·`ProjectSettings` 폴더가 바로 들어 있는 폴더**를 선택합니다.
+   - GitHub ZIP을 Windows "압축 풀기"로 풀면 같은 이름 폴더가 **두 겹**으로 생깁니다. 바깥 폴더를 고르면 Unity가 빈 새 프로젝트를 만들어 버립니다(증상: 상단에 `Lumina` 메뉴 없음, Hierarchy가 `Untitled`, Project 창에 `Multiplayer Center` 패키지).
+   - 다른 6000.x 버전으로 열어도 됩니다(버전 변경 확인 창이 뜨면 진행).
 3. 처음 열면 `Lumina` 자동 설정이 한 번 실행됩니다. 이때 `Assets/Scenes/Boot.unity`, 빌드 목록, 가로 화면 고정, URP 에셋이 생성됩니다.
    - 자동 설정이 실행되지 않으면 메뉴 **Lumina → 1. 프로젝트 설정 실행**을 누르세요.
-4. **Play**를 누르면 로비가 뜹니다. 씬 설정이 없어도 아무 씬에서 Play하면 GameApp이 자동 생성됩니다.
+   - 입력 설정이 신규 Input System 전용이면 자동 설정이 'Both'로 바꾸고 재시작을 안내합니다. 안내가 뜨면 Unity를 한 번 껐다 켜세요.
+4. **Play**를 누르면 로비가 뜹니다. Play 전 Game 창에 "No cameras rendering"이 보이는 것은 정상입니다(카메라는 Play 시 생성). 씬 설정이 없어도 아무 씬에서 Play하면 GameApp이 자동 생성됩니다.
 5. 처음 열고 나서 Unity가 생성한 `.meta` 파일을 커밋하면, 다른 PC에서도 같은 GUID를 쓰게 됩니다.
 
 조작

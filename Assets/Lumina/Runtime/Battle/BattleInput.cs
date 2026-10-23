@@ -36,55 +36,46 @@ namespace Lumina.Runtime.Battle
         public void Poll()
         {
             PausePressed = false;
-#if ENABLE_LEGACY_INPUT_MANAGER
-            if (Input.GetKeyDown(KeyCode.J)) _attackP = true;
-            if (Input.GetKeyDown(KeyCode.K)) _skillP = true;
-            if (Input.GetKeyDown(KeyCode.L)) _ultP = true;
-            if (Input.GetKeyDown(KeyCode.Space)) _dodgeP = true;
-            if (Input.GetKeyDown(KeyCode.Alpha1)) _tag = 0;
-            if (Input.GetKeyDown(KeyCode.Alpha2)) _tag = 1;
-            if (Input.GetKeyDown(KeyCode.Alpha3)) _tag = 2;
-            if (Input.GetKeyDown(KeyCode.Alpha4)) _tag = 3;
-            if (Input.GetKeyDown(KeyCode.Escape)) PausePressed = true;
-#elif ENABLE_INPUT_SYSTEM
-            var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (kb != null)
-            {
-                if (kb.jKey.wasPressedThisFrame) _attackP = true;
-                if (kb.kKey.wasPressedThisFrame) _skillP = true;
-                if (kb.lKey.wasPressedThisFrame) _ultP = true;
-                if (kb.spaceKey.wasPressedThisFrame) _dodgeP = true;
-                if (kb.digit1Key.wasPressedThisFrame) _tag = 0;
-                if (kb.digit2Key.wasPressedThisFrame) _tag = 1;
-                if (kb.digit3Key.wasPressedThisFrame) _tag = 2;
-                if (kb.digit4Key.wasPressedThisFrame) _tag = 3;
-                if (kb.escapeKey.wasPressedThisFrame) PausePressed = true;
-            }
-#endif
+            if (Down(KeyCode.J, "jKey")) _attackP = true;
+            if (Down(KeyCode.K, "kKey")) _skillP = true;
+            if (Down(KeyCode.L, "lKey")) _ultP = true;
+            if (Down(KeyCode.Space, "spaceKey")) _dodgeP = true;
+            if (Down(KeyCode.Alpha1, "digit1Key")) _tag = 0;
+            if (Down(KeyCode.Alpha2, "digit2Key")) _tag = 1;
+            if (Down(KeyCode.Alpha3, "digit3Key")) _tag = 2;
+            if (Down(KeyCode.Alpha4, "digit4Key")) _tag = 3;
+            if (Down(KeyCode.Escape, "escapeKey")) PausePressed = true;
         }
 
         private static Vector2 KeyboardMove(out bool attackHeld)
         {
             Vector2 v = Vector2.zero;
-            attackHeld = false;
-#if ENABLE_LEGACY_INPUT_MANAGER
-            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) v.y += 1f;
-            if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) v.y -= 1f;
-            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) v.x += 1f;
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) v.x -= 1f;
-            attackHeld = Input.GetKey(KeyCode.J);
-#elif ENABLE_INPUT_SYSTEM
-            var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (kb != null)
-            {
-                if (kb.wKey.isPressed || kb.upArrowKey.isPressed) v.y += 1f;
-                if (kb.sKey.isPressed || kb.downArrowKey.isPressed) v.y -= 1f;
-                if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) v.x += 1f;
-                if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) v.x -= 1f;
-                attackHeld = kb.jKey.isPressed;
-            }
-#endif
+            if (Held(KeyCode.W, "wKey") || Held(KeyCode.UpArrow, "upArrowKey")) v.y += 1f;
+            if (Held(KeyCode.S, "sKey") || Held(KeyCode.DownArrow, "downArrowKey")) v.y -= 1f;
+            if (Held(KeyCode.D, "dKey") || Held(KeyCode.RightArrow, "rightArrowKey")) v.x += 1f;
+            if (Held(KeyCode.A, "aKey") || Held(KeyCode.LeftArrow, "leftArrowKey")) v.x -= 1f;
+            attackHeld = Held(KeyCode.J, "jKey");
             return v.sqrMagnitude > 1f ? v.normalized : v;
+        }
+
+        // 구 Input Manager 가 켜져 있으면(Old/Both) 그대로 사용, 꺼져 있으면 Input System 을 리플렉션으로 읽는다.
+        // Input System 패키지를 직접 참조하지 않으므로 패키지 유무·입력 설정과 관계없이 컴파일된다.
+        private static bool Down(KeyCode legacy, string newKey)
+        {
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetKeyDown(legacy);
+#else
+            return NewInputKeyboard.Get(newKey, true);
+#endif
+        }
+
+        private static bool Held(KeyCode legacy, string newKey)
+        {
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetKey(legacy);
+#else
+            return NewInputKeyboard.Get(newKey, false);
+#endif
         }
 
         /// <summary>시뮬레이션 1틱분 입력을 만들고 눌림 플래그를 소비한다.</summary>
@@ -111,6 +102,36 @@ namespace Lumina.Runtime.Battle
         {
             _attackP = _skillP = _ultP = _dodgeP = false;
             _tag = -1;
+        }
+    }
+
+    /// <summary>
+    /// Input System(com.unity.inputsystem) 키보드를 리플렉션으로 읽는다. 패키지가 없으면 항상 false.
+    /// 구 Input Manager 가 꺼진 프로젝트에서만 사용된다.
+    /// </summary>
+    internal static class NewInputKeyboard
+    {
+        private static readonly System.Type KeyboardType = System.Type.GetType("UnityEngine.InputSystem.Keyboard, Unity.InputSystem");
+        private static readonly System.Reflection.PropertyInfo Current = KeyboardType?.GetProperty("current", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+        private static readonly System.Collections.Generic.Dictionary<string, System.Reflection.PropertyInfo> KeyProps = new System.Collections.Generic.Dictionary<string, System.Reflection.PropertyInfo>();
+        private static System.Reflection.PropertyInfo _isPressed;
+        private static System.Reflection.PropertyInfo _wasPressed;
+
+        public static bool Get(string keyProperty, bool pressedThisFrame)
+        {
+            object kb = Current?.GetValue(null);
+            if (kb == null) return false;
+            if (!KeyProps.TryGetValue(keyProperty, out var prop))
+            {
+                prop = KeyboardType.GetProperty(keyProperty);
+                KeyProps[keyProperty] = prop;
+            }
+            object control = prop?.GetValue(kb);
+            if (control == null) return false;
+            var state = pressedThisFrame
+                ? (_wasPressed ?? (_wasPressed = control.GetType().GetProperty("wasPressedThisFrame")))
+                : (_isPressed ?? (_isPressed = control.GetType().GetProperty("isPressed")));
+            return state != null && (bool)state.GetValue(control);
         }
     }
 }

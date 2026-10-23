@@ -45,6 +45,7 @@ namespace Lumina.EditorTools
 
             TrySetupUrp();
             CreateBaseMaterial();
+            EnsureLegacyInputEnabled();
 
             if (!File.Exists(ScenePath))
             {
@@ -99,6 +100,26 @@ namespace Lumina.EditorTools
             {
                 Debug.LogWarning("[Lumina] URP 자동 설정 실패 → Built-in 렌더러로 동작합니다. 수동 설정: Project Settings > Graphics 에 URP Asset 지정.\n" + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// 키보드·마우스 입력과 UI 모듈이 확실히 동작하도록 Active Input Handling 을 'Both'(2) 로 맞춘다.
+        /// 구 Input Manager 가 이미 켜져 있으면(Old/Both) 아무것도 하지 않는다. 변경 시 에디터 재시작 필요.
+        /// </summary>
+        private static void EnsureLegacyInputEnabled()
+        {
+#if !ENABLE_LEGACY_INPUT_MANAGER
+            var assets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset");
+            if (assets == null || assets.Length == 0) return;
+            var so = new SerializedObject(assets[0]);
+            var prop = so.FindProperty("activeInputHandler");
+            if (prop == null || prop.intValue == 2) return;
+            prop.intValue = 2;
+            so.ApplyModifiedProperties();
+            AssetDatabase.SaveAssets();
+            Debug.LogWarning("[Lumina] Active Input Handling 을 'Both' 로 변경했습니다. Unity 를 재시작해야 키보드·마우스 입력이 적용됩니다.");
+            EditorUtility.DisplayDialog("Lumina 설정", "입력 설정(Active Input Handling)을 'Both' 로 바꿨습니다.\nUnity 를 한 번 껐다가 다시 열어 주세요.", "확인");
+#endif
         }
 
         /// <summary>빌드에서 셰이더가 제외되지 않도록 Resources 에 기본 Lit 머티리얼을 둔다.</summary>

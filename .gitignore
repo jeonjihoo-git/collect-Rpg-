@@ -1,0 +1,25 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/*.csproj
+/*.sln
+/*.slnx
+.vs/
+.idea/
+*.pidb
+*.userprefs
+*.apk
+*.aab
+crashlytics-build.properties
+
+# 도구 산출물
+tools/**/bin/
+tools/**/obj/
+sim_out/
+SfxPreview/

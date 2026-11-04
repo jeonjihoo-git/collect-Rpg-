@@ -61,6 +61,9 @@ namespace Lumina.Core.Combat
         public float invulnTimer;
         public bool perfectGrantedThisDodge;
         public int lockTarget = -1;
+        public ActionKind approachKind;
+        public float approachTimer;
+        public bool approachAuto;
     }
 
     /// <summary>한 번의 공격 행동(일반 1타/스킬/궁극기). 투사체·장판·링이 이 객체를 공유해 공명 1회 지급을 보장.</summary>
@@ -115,6 +118,9 @@ namespace Lumina.Core.Combat
         public Vec2 dashTo;
         public float[] attackCds;
         public bool enraged;
+        /// <summary>피격 경직 남은 시간(이동·공격 선택 정지).</summary>
+        public float flinchTimer;
+        public float flinchImmuneUntil = -99f;
         public bool Alive => ai != EnemyAi.Dead;
         public bool Staggered => staggerTimer > 0f;
     }

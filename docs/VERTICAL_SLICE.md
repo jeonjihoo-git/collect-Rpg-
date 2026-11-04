@@ -36,7 +36,7 @@ Assets/Lumina/
     Audio/         SfxPlayer(합성 캐시·보이스 풀)
   Editor/          LuminaProjectSetup(Boot 씬·빌드 목록·가로 고정·URP 자동 설정·WAV 내보내기)
   Resources/LuminaData/  balance · reactions · weapons · characters_test · roster_canon · enemies · stages (.json)
-  Tests/EditMode/  NUnit 76개 — Unity Test Runner 와 dotnet 양쪽에서 동일 파일 실행
+  Tests/EditMode/  NUnit 82개 — Unity Test Runner 와 dotnet 양쪽에서 동일 파일 실행
 tools/
   Lumina.Core.Tests/   dotnet test 진입점
   Lumina.Sim/          헤드리스 흐름(flow) · 효과음 쇼케이스(sfx) · 처치시간(ttk)

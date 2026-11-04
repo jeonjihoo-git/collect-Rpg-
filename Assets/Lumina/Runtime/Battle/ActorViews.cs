@@ -84,7 +84,7 @@ namespace Lumina.Runtime.Battle
             root.transform.position = pos;
             float targetYaw = Mathf.Atan2(body.facing.x, body.facing.y) * Mathf.Rad2Deg;
             _yaw = Mathf.MoveTowardsAngle(_yaw, targetYaw, 1080f * dt);
-            if (body.action == ActionKind.Normal || body.action == ActionKind.Skill || body.action == ActionKind.Ultimate) _yaw = targetYaw;
+            if (body.action == ActionKind.Normal || body.action == ActionKind.Skill || body.action == ActionKind.Ultimate || body.action == ActionKind.Approach) _yaw = targetYaw;
             root.transform.rotation = Quaternion.Euler(0f, _yaw, 0f);
 
             // 기본(대기/이동) 포즈
@@ -118,6 +118,13 @@ namespace Lumina.Runtime.Battle
                     modelPos.y = -0.15f * Mathf.Sin(u * Mathf.PI);
                     break;
                 }
+                case ActionKind.Approach:
+                    _runPhase += dt * 17f;
+                    modelPos.y = Mathf.Abs(Mathf.Sin(_runPhase)) * 0.06f;
+                    modelEuler.x = 22f;
+                    rEuler = new Vector3(75f, 25f, 0f);
+                    lEuler = new Vector3(75f, -25f, 0f);
+                    break;
                 case ActionKind.HitStun:
                     modelEuler.x = -14f;
                     modelPos.x = Mathf.Sin(Time.time * 70f) * 0.04f;
@@ -379,6 +386,7 @@ namespace Lumina.Runtime.Battle
         private readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         private float _flash;
         private Vector3 _flinch;
+        private float _recoil;
         private float _spawn;
         private float _death = -1f;
         public bool Finished { get; private set; }
@@ -446,9 +454,10 @@ namespace Lumina.Runtime.Battle
         public void Hit(Vector3 dir, SfxTier tier)
         {
             _flash = 1f;
-            float k = tier == SfxTier.Ultimate ? 0.45f : tier == SfxTier.Finisher || tier == SfxTier.Heavy || tier == SfxTier.Skill ? 0.3f : 0.15f;
+            float k = tier == SfxTier.Ultimate ? 0.55f : tier == SfxTier.Finisher || tier == SfxTier.Heavy || tier == SfxTier.Skill ? 0.4f : 0.22f;
             if (def.isBoss) k *= 0.4f;
             _flinch = dir.normalized * k;
+            _recoil = Mathf.Max(_recoil, def.isBoss ? 0.4f : 1f);
         }
 
         public void Die() => _death = 0f;
@@ -471,7 +480,7 @@ namespace Lumina.Runtime.Battle
             root.transform.rotation = Quaternion.Slerp(root.transform.rotation, V.Facing(e.ai == EnemyAi.Telegraph ? e.lockedDir : e.facing), 1f - Mathf.Exp(-dt * 14f));
 
             _spawn = Mathf.MoveTowards(_spawn, 1f, dt * 2f);
-            float squash = 1f + _flash * 0.12f;
+            float squash = 1f + _flash * 0.22f;
             Vector3 scale = new Vector3(squash, 1f / squash, squash) * Mathf.SmoothStep(0.2f, 1f, _spawn);
             Vector3 euler = Vector3.zero;
             Vector3 mpos = Vector3.zero;
@@ -526,11 +535,14 @@ namespace Lumina.Runtime.Battle
                 _armR.localRotation = Quaternion.Euler(armPitch, 10f, 0f);
                 _armL.localRotation = Quaternion.Euler(armPitch, -10f, 0f);
             }
+            // 피격 순간 뒤로 젖힘(즉시) + 시뮬레이션 경직 중 자세 유지
+            _recoil = Mathf.MoveTowards(_recoil, 0f, dt * 7f);
+            euler.x -= 14f * _recoil;
+            if (e.flinchTimer > 0f) euler.x -= 16f * Mathf.Clamp01(e.flinchTimer / 0.25f);
             _model.localScale = scale;
             _model.localRotation = Quaternion.Euler(euler);
             _model.localPosition = mpos;
-
-            _flash = Mathf.MoveTowards(_flash, 0f, dt * 9f);
+            _flash = Mathf.MoveTowards(_flash, 0f, dt * 6f);
             foreach (var r in _renderers)
             {
                 r.GetPropertyBlock(_block);

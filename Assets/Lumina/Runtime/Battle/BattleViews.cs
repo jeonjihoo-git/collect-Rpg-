@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Lumina.Runtime.Battle
 {
-    /// <summary>3/4 탑뷰 추적 카메라 + 트라우마 방식 흔들림 + 궁극기 줌.</summary>
+    /// <summary>3/4 탑뷰 추적 카메라 + 트라우마 방식 흔들림 + 타격 방향 킥 + 궁극기 줌.</summary>
     public sealed class CameraRig
     {
         public readonly Camera cam;
@@ -13,6 +13,7 @@ namespace Lumina.Runtime.Battle
         private float _trauma;
         private float _zoom;
         private float _seed;
+        private Vector3 _kick;
         private static readonly Vector3 Offset = new Vector3(0f, 11.5f, -8.8f);
 
         public CameraRig(Camera c)
@@ -37,15 +38,26 @@ namespace Lumina.Runtime.Battle
 
         public void Zoom(float amount) => _zoom = Mathf.Max(_zoom, amount);
 
+        /// <summary>타격 방향으로 짧게 밀렸다 돌아오는 카메라 킥(가벼운 타격도 체감되도록).</summary>
+        public void Kick(Vector3 dir, float amount)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 1e-4f) dir = Vector3.forward;
+            Vector3 k = dir.normalized * amount + Vector3.down * (amount * 0.35f);
+            if (k.sqrMagnitude > _kick.sqrMagnitude) _kick = k;
+        }
+
         public void Update(Vector3 target, float dt)
         {
             _focus = Vector3.SmoothDamp(_focus, target, ref _vel, 0.12f, 60f, dt);
             _zoom = Mathf.MoveTowards(_zoom, 0f, dt * 0.8f);
             Vector3 off = Offset * (1f - 0.22f * _zoom);
             float t = Time.time * 28f;
-            float s = _trauma * _trauma;
+            // 선형+제곱 혼합: 약한 흔들림도 보이고 강한 흔들림은 더 크게
+            float s = 0.5f * _trauma + 0.5f * _trauma * _trauma;
             Vector3 shake = new Vector3(Mathf.PerlinNoise(_seed, t) - 0.5f, Mathf.PerlinNoise(_seed + 7f, t) - 0.5f, Mathf.PerlinNoise(_seed + 13f, t) - 0.5f) * (0.9f * s);
-            cam.transform.position = _focus + off + shake;
+            _kick = Vector3.Lerp(_kick, Vector3.zero, 1f - Mathf.Exp(-dt * 16f));
+            cam.transform.position = _focus + off + shake + _kick;
             cam.transform.rotation = Quaternion.LookRotation(-off.normalized + Vector3.up * 0.05f, Vector3.up) * Quaternion.Euler(0f, 0f, (Mathf.PerlinNoise(_seed + 21f, t) - 0.5f) * 4f * s);
             _trauma = Mathf.MoveTowards(_trauma, 0f, dt * 1.8f);
         }

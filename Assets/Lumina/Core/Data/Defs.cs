@@ -90,6 +90,9 @@ namespace Lumina.Core.Data
         public float TotalDuration => LastHitTime + recovery;
 
         public float ChainTime => LastHitTime + recovery * chainAt;
+
+        /// <summary>이동 입력으로 후딜을 끊을 수 있는 시점(마지막 타 직후). 콤보 연결(ChainTime)보다 빠르다 — 가정 A-26.</summary>
+        public float MoveCancelTime => LastHitTime + Math.Min(0.1f, recovery * 0.35f);
     }
 
     [Serializable]
@@ -345,7 +348,7 @@ namespace Lumina.Core.Data
         public float dodgeDuration = 0.25f;
         public float dodgeDistance = 3.6f;
         public float breakRegenDelay = 1f;
-        public float inputBuffer = 0.2f;
+        public float inputBuffer = 0.3f;
         public float playerHitStun = 0.2f;
         public float autoManualOverride = 1f;
         public float softLockRange = 8f;
@@ -361,6 +364,21 @@ namespace Lumina.Core.Data
         public int startGold = 10000;
         public int startCrystals = 0;
         public int startExpBooks = 0;
+        /// <summary>근접 공격 접근 보조: 사거리 밖이지만 이 거리(몸 표면 기준) 안의 적이면 붙은 뒤 공격 — 가정 A-25.</summary>
+        public float approachRange = 4.5f;
+        public float approachSpeed = 16f;
+        public float approachMaxTime = 0.3f;
+        /// <summary>일반 적 피격 경직(보스·예고/공격 중 제외) — 가정 A-24.</summary>
+        public float enemyFlinchLight = 0.2f;
+        public float enemyFlinchHeavy = 0.4f;
+        public float enemyFlinchUltimate = 0.6f;
+        public float enemyFlinchImmunity = 0.5f;
+        /// <summary>히트스톱 연출 배율/최소/최대(초) — 프레젠테이션 튜닝.</summary>
+        public float hitstopScale = 1.4f;
+        public float hitstopMin = 0.05f;
+        public float hitstopMax = 0.2f;
+        /// <summary>자동전투 중 자동 태그(교대) 사용 — 사용자 확인(2026-11-04).</summary>
+        public bool autoTag = true;
     }
 
     [Serializable]

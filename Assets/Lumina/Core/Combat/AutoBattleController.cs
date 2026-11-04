@@ -5,9 +5,10 @@ using Lumina.Core.Util;
 namespace Lumina.Core.Combat
 {
     /// <summary>
-    /// 자동전투 AI [확정 정책: 일반공격·스킬·회피·궁극기 자동 사용].
-    /// 타깃 선택·타이밍 알고리즘은 미확정(C-12)이라 이 구현은 가정 A-11: 가장 가까운 적, 예고 종료 0.22초 전 회피,
-    /// 공명 가득 시 궁극기, 쿨다운 끝나면 스킬, 사거리 밖이면 접근. 태그는 자동으로 하지 않는다(수동 태그는 허용).
+    /// 자동전투 AI [확정 정책: 일반공격·스킬·회피·궁극기 자동 사용] + 자동 태그(사용자 확인 2026-11-04, balance.temp.autoTag).
+    /// 세부 알고리즘은 미확정(C-12)이라 이 구현은 가정 A-11: 가장 가까운 적, 예고 종료 0.22초 전 회피, 공명 가득 시 궁극기,
+    /// 현재 캐릭터 스킬이 쿨타임이면 스킬 준비된 동료로 교대(속성 반응 > 파티 체력 낮을 때 힐러 > 버프 없을 때 버퍼 순),
+    /// 체력 30% 미만이면 체력이 많은 동료로 교대, 쿨다운 끝나면 스킬, 사거리 밖이면 접근.
     /// </summary>
     public sealed class AutoBattleController
     {
@@ -48,7 +49,15 @@ namespace Lumina.Core.Combat
                 input.ultimatePressed = true;
                 return input;
             }
-            // 3) 스킬
+            // 3) 자동 태그(스킬 순환·위급 교대)
+            int tagTo = ChooseTag(sim, target);
+            if (tagTo >= 0)
+            {
+                input.tagTo = tagTo;
+                return input;
+            }
+
+            // 4) 스킬
             if (sim.CanSkill && body.action == ActionKind.None && dist <= EffectiveRange(m.weapon.skill) + 0.5f)
             {
                 input.skillPressed = true;
@@ -62,7 +71,7 @@ namespace Lumina.Core.Combat
                 return input;
             }
 
-            // 4) 접근 또는 일반 공격
+            // 5) 접근 또는 일반 공격
             float range = EffectiveRange(m.weapon.combo[0]);
             if (dist > range)
             {
@@ -74,6 +83,63 @@ namespace Lumina.Core.Combat
                 input.attackPressed = body.action == ActionKind.None;
             }
             return input;
+        }
+
+        /// <summary>교대할 파티 슬롯(-1 = 교대 안 함).</summary>
+        public static int ChooseTag(BattleSim sim, EnemyState target)
+        {
+            if (!sim.Temp.autoTag || sim.Party.Length < 2 || sim.TagCd > 0f) return -1;
+            if (!sim.ActionCancelable || sim.Body.action == ActionKind.Ultimate) return -1;
+            var a = sim.Active;
+            float aRatio = a.hp / a.maxHp;
+
+            // 위급: 체력 30% 미만이면 체력 여유가 큰 동료로
+            if (aRatio < 0.3f)
+            {
+                int safest = -1;
+                float bestRatio = aRatio + 0.2f;
+                for (int i = 0; i < sim.Party.Length; i++)
+                {
+                    var o = sim.Party[i];
+                    if (i == sim.ActiveIndex || !o.Alive) continue;
+                    float r = o.hp / o.maxHp;
+                    if (r > bestRatio)
+                    {
+                        bestRatio = r;
+                        safest = i;
+                    }
+                }
+                if (safest >= 0) return safest;
+            }
+
+            // 스킬 순환: 현재 캐릭터 스킬이 곧 준비되면 교대하지 않음
+            if (a.skillCd <= 0.5f) return -1;
+            float partyHp = 0f, partyMax = 0f;
+            foreach (var p in sim.Party)
+            {
+                if (!p.Alive) continue;
+                partyHp += p.hp;
+                partyMax += p.maxHp;
+            }
+            float partyRatio = partyMax > 0f ? partyHp / partyMax : 1f;
+            int best = -1;
+            float bestScore = 0f;
+            for (int i = 0; i < sim.Party.Length; i++)
+            {
+                var o = sim.Party[i];
+                if (i == sim.ActiveIndex || !o.Alive || o.skillCd > 0f) continue;
+                float score = 1f;
+                if (target != null && target.aura != Element.None && target.auraTimer > 0.4f && sim.ReactionFor(target.aura, o.def.element) != null) score += 3f;
+                if (o.def.role == Role.Healer && partyRatio < 0.6f) score += 4f;
+                if (o.def.role == Role.Buffer && sim.BuffTimer <= 0f) score += 1.5f;
+                if (o.def.element == a.def.element) score -= 0.5f;
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = i;
+                }
+            }
+            return best;
         }
 
         public static float EffectiveRange(AttackStepDef s)

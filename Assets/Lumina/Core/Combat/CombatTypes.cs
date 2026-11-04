@@ -11,7 +11,9 @@ namespace Lumina.Core.Combat
         Skill,
         Ultimate,
         Dodge,
-        HitStun
+        HitStun,
+        /// <summary>근접 공격 전 자동 접근(보조). 도착하면 실제 공격이 시작된다.</summary>
+        Approach
     }
 
     public enum BattleOutcome

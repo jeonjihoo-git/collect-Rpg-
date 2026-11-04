@@ -17,7 +17,7 @@
     "breakRegenPerSecond": 3,
     "baseCoefNormal": 0.12,
     "baseCoefSkill": 0.32,
-    "baseCoefUltimate": 0.90,
+    "baseCoefUltimate": 0.9,
     "normalInterval": 0.58,
     "skillCooldown": 6,
     "tagCooldown": 1,
@@ -33,13 +33,19 @@
     "breakthroughStatBonus": 0.08,
     "accountExpPerLevel": 1000,
     "staminaRefillTest": 120,
-    "skillLevelMultipliers": { "1": 1.00, "3": 1.15, "5": 1.35, "7": 1.55, "10": 1.85 }
+    "skillLevelMultipliers": {
+      "1": 1.0,
+      "3": 1.15,
+      "5": 1.35,
+      "7": 1.55,
+      "10": 1.85
+    }
   },
   "temp": {
     "dodgeDuration": 0.25,
     "dodgeDistance": 3.6,
     "breakRegenDelay": 1.0,
-    "inputBuffer": 0.2,
+    "inputBuffer": 0.3,
     "playerHitStun": 0.2,
     "autoManualOverride": 1.0,
     "softLockRange": 8,
@@ -54,6 +60,17 @@
     "staminaMax": 120,
     "startGold": 10000,
     "startCrystals": 0,
-    "startExpBooks": 0
+    "startExpBooks": 0,
+    "approachRange": 4.5,
+    "approachSpeed": 16,
+    "approachMaxTime": 0.3,
+    "enemyFlinchLight": 0.2,
+    "enemyFlinchHeavy": 0.4,
+    "enemyFlinchUltimate": 0.6,
+    "enemyFlinchImmunity": 0.5,
+    "hitstopScale": 1.4,
+    "hitstopMin": 0.05,
+    "hitstopMax": 0.2,
+    "autoTag": true
   }
 }

@@ -40,10 +40,11 @@ URP 패키지 버전 오류가 나면 *Window → Package Manager*에서 Univers
 ## 2. Unity 없이 검증 (Windows/Mac/Linux, .NET 8 SDK)
 
 ```bash
-dotnet test tools/Lumina.Core.Tests                       # 코어 규칙 테스트 76개 (QA 체크리스트 매핑)
+dotnet test tools/Lumina.Core.Tests                       # 코어 규칙 테스트 82개 (QA 체크리스트 매핑)
 dotnet run --project tools/Lumina.Sim -- flow             # 로비→스테이지→편성→전투→결과→저장 헤드리스 전체 흐름
 dotnet run --project tools/Lumina.Sim -- sfx sim_out/sfx  # 16무기 효과음 WAV + 실제 전투 타이밍 쇼케이스
 dotnet run --project tools/Lumina.Sim -- ttk              # 무기별 처치 시간 표
+dotnet run --project tools/Lumina.Sim -- feel             # 이동하며 연타 시 헛스윙/피격 끊김 진단
 dotnet build tools/UnityCompileCheck/Player/UnityCompileCheck.Player.csproj   # Unity 런타임 코드 컴파일 검사
 dotnet build tools/UnityCompileCheck/Editor/UnityCompileCheck.Editor.csproj   # 에디터 스크립트 컴파일 검사
 ```

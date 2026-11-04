@@ -202,7 +202,7 @@ namespace Lumina.Runtime.Battle
             Color elc = Theme.Element(el);
             Color main = el != Element.None ? elc : Color.white;
             if (crit) main = Color.Lerp(main, Theme.Gold, 0.6f);
-            Flash(hit, new Color(main.r, main.g, main.b, 0.95f), (crit ? 1.6f : 1.1f) * k);
+            Flash(hit, new Color(main.r, main.g, main.b, 0.95f), (crit ? 2.0f : 1.45f) * k);
 
             switch (w)
             {

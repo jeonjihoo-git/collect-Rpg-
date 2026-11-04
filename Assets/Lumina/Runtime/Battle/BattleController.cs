@@ -48,6 +48,7 @@ namespace Lumina.Runtime.Battle
         private readonly List<int> _tmp = new List<int>();
         private float _acc;
         private float _hitstop;
+        private float _approachFx;
         private bool _paused;
         private bool _ended;
         private float _endDelay;
@@ -249,8 +250,10 @@ namespace Lumina.Runtime.Battle
                         Vector3 dir = new Vector3(ev.dir.x, 0f, ev.dir.y);
                         if (_enemies.TryGetValue(ev.enemy, out var view)) view.Hit(dir, ev.tier);
                         _vfx.Impact(pos, dir, ev.weapon, ev.tier, ev.swing, ev.element, ev.crit);
-                        _hitstop = Mathf.Min(0.18f, Mathf.Max(_hitstop, ev.hitstop));
-                        _cam.Shake(ev.shake * 0.55f);
+                        var tb = _sim.Temp;
+                        _hitstop = Mathf.Min(tb.hitstopMax, Mathf.Max(_hitstop, Mathf.Max(tb.hitstopMin, ev.hitstop * tb.hitstopScale)));
+                        _cam.Shake(ev.shake * 0.6f);
+                        _cam.Kick(dir, KickFor(ev.tier));
                         Color c = ev.crit ? Theme.Gold : ev.element != Element.None ? Theme.Element(ev.element) : Color.white;
                         _hud.Float(pos + Vector3.up * 2.2f, ev.amount.ToString("0") + (ev.crit ? "!" : ""), c, ev.crit ? 46 : ev.tier == SfxTier.Ultimate ? 42 : 32, 0.75f);
                         break;
@@ -350,6 +353,20 @@ namespace Lumina.Runtime.Battle
 
         private AvatarView Avatar => _avatars[_sim.ActiveIndex];
 
+        private static float KickFor(SfxTier t)
+        {
+            switch (t)
+            {
+                case SfxTier.Light: return 0.05f;
+                case SfxTier.Medium: return 0.08f;
+                case SfxTier.Heavy: return 0.12f;
+                case SfxTier.Finisher:
+                case SfxTier.Skill: return 0.16f;
+                case SfxTier.Ultimate: return 0.26f;
+                default: return 0.06f;
+            }
+        }
+
         private ElementReactionDef FindReaction(string name)
         {
             foreach (var r in _app.Db.Reactions)
@@ -411,6 +428,15 @@ namespace Lumina.Runtime.Battle
                 _shownActive = _sim.ActiveIndex;
             }
             Avatar.Pose(_sim, alpha, dt);
+            if (_sim.Body.action == ActionKind.Approach && dt > 0f)
+            {
+                _approachFx -= dt;
+                if (_approachFx <= 0f)
+                {
+                    _approachFx = 0.05f;
+                    _vfx.Afterimage(Avatar.root.transform.position, Avatar.root.transform.rotation, new Color(1f, 1f, 1f, 0.3f));
+                }
+            }
 
             _tmp.Clear();
             foreach (var kv in _enemies)

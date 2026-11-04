@@ -77,6 +77,19 @@ namespace Lumina.Tests
                 Assert.Greater(counts.TryGetValue(k, out int n) ? n : 0, 0, k + " 자동 사용");
         }
 
+        /// <summary>사용자 피드백(2026-11-04): 자동전투가 교대를 직접 해 줘야 했음 → 자동 태그로 스킬 순환·반응.</summary>
+        [Test]
+        public void AutoController_TagsToRotateParty_AndTriggersReactions()
+        {
+            var sim = TestData.Sim(TestData.Db, "vs_1", TestPresets.Default, true, 5);
+            var ai = new AutoBattleController();
+            for (int i = 0; i < 60 * 180 && sim.Outcome == BattleOutcome.InProgress; i++) sim.Step(ai.Decide(sim), true);
+            Assert.AreEqual(BattleOutcome.Victory, sim.Outcome);
+            Assert.Greater(sim.Log.Count(e => e.type == CombatEventType.Tag && e.isAuto), 0, "자동 태그 사용");
+            Assert.GreaterOrEqual(sim.Stats.memberDamage.Count(d => d > 0f), 3, "3명 이상이 교대로 피해를 줌");
+            Assert.Greater(sim.Stats.reactions, 0, "교대로 속성 반응 발생");
+        }
+
         [Test]
         public void AutoController_ClearsStage1()
         {

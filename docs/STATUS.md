@@ -1,4 +1,7 @@
-# 현재 상태표 (2026-10-17, 마일스톤 1 착수 시점)
+# 현재 상태표 (2026-11-04 갱신 · 마일스톤 1)
+
+> **Unity 실행 확인(사용자, Windows · Unity 6.5 6000.5.7f1):** 프로젝트 로드·자동 설정·로비/편성/전투/결과 동작, 자동전투 잠금/해금, 뇌폭풍 표시, PERFECT, 재시작 후 저장 유지, Test Runner 76/76, 콘솔 오류 없음.
+> 피드백 반영(2026-11-04): 자동전투 자동 태그 추가, 근접 접근 보조·넉백 상한·적 피격 경직·이동 캔슬 앞당김·히트스톱/카메라 킥 강화 → **재확인 필요.**
 
 판정 원칙: **코드가 있다 ≠ 통과.** "통과"는 이 저장소에서 실제 실행한 자동 테스트/헤드리스 실행 결과가 있을 때만 쓴다.
 Unity 에디터·실기기·청음이 필요한 항목은 이 개발 환경(리눅스 컨테이너, Unity 없음)에서 **검증불가**로 표시한다.
@@ -21,27 +24,27 @@ Unity 에디터·실기기·청음이 필요한 항목은 이 개발 환경(리�
 
 ## 2. 이 저장소의 실제 구현 상태 (근거 포함)
 
-검증 명령: `dotnet test tools/Lumina.Core.Tests` (76개 테스트), `dotnet run --project tools/Lumina.Sim -- flow`, `dotnet build tools/UnityCompileCheck/{Player,Editor}`
+검증 명령: `dotnet test tools/Lumina.Core.Tests` (82개 테스트), `dotnet run --project tools/Lumina.Sim -- flow | feel`, `dotnet build tools/UnityCompileCheck/{Player,Editor}`
 
 ### QA 체크리스트 매핑 (06_QA_CHECKLIST.md)
 
 | QA 항목 | 판정 | 근거 |
 |---|---|---|
-| 1-1 클린 체크아웃 빌드·시작·스테이지 진입 | **부분** | 코어·헤드리스 흐름 통과(`Lumina.Sim flow`), Unity 런타임/에디터 코드 **컴파일 통과**(Unity 2021.3 엔진 참조 + uGUI 스텁). Unity 6 에디터 실행은 **검증불가** |
+| 1-1 클린 체크아웃 빌드·시작·스테이지 진입 | 통과(에디터) | Unity 6.5 에서 열기→자동 설정→Play→스테이지 진입 확인(사용자). 모바일 빌드는 미검증 |
 | 1-2 16명 로스터·16무기 조회, 참조 누락 없음 | 통과 | `DataIntegrityTests`(로스터는 조회 전용, 전투 미연결) |
 | 1-3 과거 콘셉트 18인 혼용 없음 | 통과 | `TestProxies_AreMarked_AndDoNotUseCanonOrLegacyNames` |
 | 1-4 4인 중복 편성 불가 · KO 캐릭터로 교체 금지 | 통과 | `Party_Rejects_*`, `SetPartySlot_*Swaps*`, `ActiveKO_AutoSwaps_CannotTagToKO_*` |
-| 1-5 입력·SFX/VFX 명중 프레임 일치, 에러로그 없음 | **부분** | 16무기 전부 "피해 적용 틱 = Hit 이벤트 틱", 근접 명중 틱 = 시작+선딜, 휘두름 큐 = 명중−선행시간(`HitFrame_Sync_AllSixteenWeapons`). 연출·효과음은 Hit 이벤트로만 재생하도록 구현. Unity 콘솔 에러로그 **검증불가** |
+| 1-5 입력·SFX/VFX 명중 프레임 일치, 에러로그 없음 | 통과 | 코어 테스트(`HitFrame_Sync_AllSixteenWeapons`) + 사용자 확인(히트스톱·소리 일치 O, 콘솔 오류 없음) |
 | 2-1 일반·스킬·궁극기·회피·태그 쿨타임/공명 | 통과 | `NormalHit_*`, `Skill_*`, `Tag_*`, `Ultimate_*` |
 | 2-2 이동 중 회피·무적·완벽 회피·브레이크 경직 | 통과 | `PerfectDodge_*`, `DodgeInvulnerability_*`, `Break_Stagger5s_*` |
 | 2-3 9속성·물리/마법·13반응(바위+얼음 보호막) | 통과 | `Reactions_MatchMachineRules_*`, `ReactionPairs_36Pairs_*`, `Reaction_RockIce_CreatesShield_*` |
-| 2-4 16종 독립 공격 특징 | **부분** | 무기별 콤보·판정·모션·투사체·효과음 레시피 구현, 특징량 구별 테스트 통과(최소 거리 0.54). 체감은 **검증불가** |
+| 2-4 16종 독립 공격 특징 | **부분 — 개선 중** | 사용자 1차 평가 "전체적으로 타격감 아쉬움, 이동하며 공격이 잘 안 됨" → A-24~A-28 조정(근접 헛스윙 12~30%→4~9%). 재평가 필요 |
 | 2-5 청음으로 명확히 구별 | **검증불가** | 쇼케이스 WAV 생성(`Lumina.Sim sfx`) — 사용자 청음 필요 |
 | 2-6 모바일 스피커/헤드폰, 징/종 일괄 재사용 없음 | **부분** | 공통 징/종 레이어 없음(코드), 실기기 청음 **검증불가** |
-| 3-1 미클리어 → 자동전투 OFF 잠금·사유 | 통과(코어) / UI 미실행 | `UnclearedStage_AutoLocked_WithReason`, `StartBattle_WithAutoOnUncleared_Rejected_*` |
+| 3-1 미클리어 → 자동전투 OFF 잠금·사유 | 통과 | 사용자 확인 +  `UnclearedStage_AutoLocked_WithReason`, `StartBattle_WithAutoOnUncleared_Rejected_*` |
 | 3-2 클리어 후 해당 스테이지만 ON | 통과 | `AfterClear_AutoUnlocked_OnlyForThatStage` |
 | 3-3 HUD 구버전 자동 토글을 정책으로 오인 안 함 | 구현 | HUD는 AUTO 표시만, 토글은 편성 화면에만 |
-| 3-4 자동 공격/스킬/회피/궁극기 모두 사용 | 통과 | `AutoController_UsesNormalSkillDodgeUltimate`, `AutoController_ClearsStage1`. 수동 개입 명세는 가정 A-12(미확정) |
+| 3-4 자동 공격/스킬/회피/궁극기 모두 사용 | **재확인 필요** | 사용자: 교대를 직접 해야 함(X) → 자동 태그 추가(`AutoController_TagsToRotateParty_AndTriggersReactions`: 4인 모두 피해·반응 발생). 수동 개입 명세는 가정 A-12 |
 | 4-1 Lv.30/6돌파/스킬 Lv.10 | 미구현 | 스탯 공식·스킬 배율만 테스트 |
 | 4-2 전용무기·유물 4부위 +15 | 미구현 | D-03 대기 |
 | 4-3 부옵 1~4종 규칙 | 미구현 | D-03 대기 |

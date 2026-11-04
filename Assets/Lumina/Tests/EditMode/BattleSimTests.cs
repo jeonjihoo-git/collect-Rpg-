@@ -426,6 +426,105 @@ namespace Lumina.Tests
         }
     }
 
+    /// <summary>2026-11-04 Unity 실행 피드백("이동하며 공격이 잘 안 됨·타격감 부족") 대응 규칙.</summary>
+    public class FeelTuningTests
+    {
+        private static GameDatabase Db => TestData.DummyDb;
+        private static PlayerInput Attack => new PlayerInput { tagTo = -1, attackPressed = true };
+
+        private static int TicksFor(float seconds)
+        {
+            int k = 0;
+            while (k * BattleSim.Dt + 1e-5f < seconds) k++;
+            return k;
+        }
+
+        [Test]
+        public void Approach_MeleeOutOfReach_DashesIn_ThenHits_KeepsHitFrame()
+        {
+            var sim = TestData.Sim(Db, "t_far", new[] { "tp_longsword" });
+            TestData.WaitSpawn(sim);
+            int pressTick = sim.Tick + 1;
+            sim.Step(Attack);
+            Assert.AreEqual(ActionKind.Approach, sim.Body.action, "사거리 밖 근접 공격은 먼저 접근");
+            for (int i = 0; i < 90 && !sim.Log.Exists(e => e.type == CombatEventType.Hit); i++) sim.Step(PlayerInput.None);
+            var start = sim.Log.Find(e => e.type == CombatEventType.ActionStart);
+            var hit = sim.Log.Find(e => e.type == CombatEventType.Hit);
+            Assert.AreEqual(CombatEventType.Hit, hit.type, "접근 후 명중해야 함");
+            Assert.Greater(start.tick, pressTick, "실제 공격 시작은 접근 이후");
+            Assert.LessOrEqual(start.tick - pressTick, TicksFor(sim.Temp.approachMaxTime) + 1, "접근은 최대 시간 안에 끝남");
+            Assert.AreEqual(start.tick + TicksFor(Db.GetWeapon(WeaponType.Longsword).combo[0].startup), hit.tick, "명중 틱 = 시작 + 선딜 유지");
+        }
+
+        [Test]
+        public void Approach_NotUsedForRangedOrMagic()
+        {
+            foreach (var id in new[] { "tp_bow", "tp_staff" })
+            {
+                var sim = TestData.Sim(Db, "t_far", new[] { id });
+                TestData.WaitSpawn(sim);
+                int pressTick = sim.Tick + 1;
+                sim.Step(Attack);
+                var start = sim.Log.Find(e => e.type == CombatEventType.ActionStart);
+                Assert.AreEqual(pressTick, start.tick, id + ": 원거리/마법은 즉시 공격");
+            }
+        }
+
+        [Test]
+        public void MoveCancel_RightAfterLastHit_EarlierThanChain()
+        {
+            var sim = TestData.Sim(Db, "t_dummy", new[] { "tp_longsword" });
+            TestData.WaitSpawn(sim);
+            sim.Step(Attack);
+            int start = sim.Tick;
+            var step = Db.GetWeapon(WeaponType.Longsword).combo[0];
+            var away = new PlayerInput { tagTo = -1, move = new Lumina.Core.Util.Vec2(0f, -1f) };
+            int cancelTick = -1;
+            for (int i = 0; i < 60; i++)
+            {
+                sim.Step(away);
+                if (sim.Body.action == ActionKind.None)
+                {
+                    cancelTick = sim.Tick;
+                    break;
+                }
+            }
+            Assert.AreEqual(1, TestData.EventsOf(sim, CombatEventType.Hit).Count, "명중은 끝까지 처리");
+            Assert.AreEqual(start + TicksFor(step.MoveCancelTime), cancelTick, "마지막 타 직후 이동으로 끊기");
+            Assert.Less(step.MoveCancelTime, step.ChainTime);
+        }
+
+        [Test]
+        public void EnemyFlinch_NormalEnemyFlinches_BossHasSuperArmor()
+        {
+            var sim = TestData.Sim(Db, "t_dummy", new[] { "tp_longsword" });
+            TestData.WaitSpawn(sim);
+            sim.Step(Attack);
+            for (int i = 0; i < 30 && !sim.Log.Exists(e => e.type == CombatEventType.Hit); i++) sim.Step(PlayerInput.None);
+            Assert.Greater(sim.Enemies[0].flinchTimer, 0f, "일반 적은 피격 경직");
+
+            var boss = TestData.Sim(Db, "t_boss", new[] { "tp_greatsword" });
+            TestData.WaitSpawn(boss);
+            boss.Step(Attack);
+            for (int i = 0; i < 60 && !boss.Log.Exists(e => e.type == CombatEventType.Hit); i++) boss.Step(PlayerInput.None);
+            Assert.IsTrue(boss.Log.Exists(e => e.type == CombatEventType.Hit));
+            Assert.AreEqual(0f, boss.Enemies[0].flinchTimer, 1e-6f, "보스는 경직 없음(브레이크로만 무력화)");
+        }
+
+        [Test]
+        public void Knockback_NormalHitsCapped_SoCombosStayInRange()
+        {
+            foreach (var w in Db.Weapons.Values)
+            {
+                foreach (var s in w.combo)
+                {
+                    float cap = s.sfxTier == SfxTier.Finisher ? 0.5f : 0.15f;
+                    Assert.LessOrEqual(s.knockback, cap + 1e-4f, w.id + "/" + s.name);
+                }
+            }
+        }
+    }
+
     public static class TestPresets
     {
         public static readonly string[] Default = { "tp_longsword", "tp_scroll", "tp_spear", "tp_staff" };

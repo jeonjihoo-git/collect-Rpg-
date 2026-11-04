@@ -15,6 +15,7 @@ namespace Lumina.Sim
     ///   dotnet run --project tools/Lumina.Sim -- flow [저장폴더]     전체 흐름 헤드리스 실행(실패 시 종료코드 1)
     ///   dotnet run --project tools/Lumina.Sim -- sfx  [출력폴더]     무기별 효과음 WAV + 전투 이벤트 기반 쇼케이스
     ///   dotnet run --project tools/Lumina.Sim -- ttk                 무기별 처치 시간 표
+    ///   dotnet run --project tools/Lumina.Sim -- feel                '이동하며 연타' 조작의 헛스윙/끊김 진단
     /// </summary>
     public static class Program
     {
@@ -34,6 +35,7 @@ namespace Lumina.Sim
                 case "flow": Flow(db, arg ?? Path.Combine("sim_out", "save")); break;
                 case "sfx": Sfx(db, arg ?? Path.Combine("sim_out", "sfx")); break;
                 case "ttk": Ttk(db); break;
+                case "feel": Feel(db); break;
                 default:
                     Console.WriteLine("알 수 없는 명령: " + cmd);
                     return 2;
@@ -291,6 +293,70 @@ namespace Lumina.Sim
                 string avg = times.Count > 0 ? $"{times.Average():0.0}s" : "-";
                 Console.WriteLine($"  {WeaponInfo.Ko(c.weapon),-4} {c.displayName,-10} 평균 {avg,7}  (패배 {deaths})");
             }
+        }
+
+        // ───────────────────────── feel ─────────────────────────
+
+        /// <summary>
+        /// 사람이 '조이스틱을 적 쪽으로 계속 밀면서 공격을 연타'하는 조작을 흉내 내 일반공격만으로 15초간 싸운다(회피·스킬 없음).
+        /// 헛스윙률 = 피격 없이도 명중하지 못한 일반공격 비율, 끊김률 = 명중 전에 피격으로 취소된 일반공격 비율(회피 미사용 조건).
+        /// </summary>
+        private static void Feel(GameDatabase db)
+        {
+            Console.WriteLine("\n[FEEL] 이동+연타(0.15초 간격) 조작, 일반공격만, vs 검증용 근접 환영 1체, 15초 × 시드 3");
+            Console.WriteLine($"  {"무기",-5}{"헛스윙",8}{"피격끊김",9}{"명중/초",8}{"콤보 1회전 넉백",14}");
+            float sumWhiff = 0f, sumInt = 0f;
+            int n = 0;
+            foreach (var c in db.Characters.OrderBy(c => (int)c.weapon))
+            {
+                int actions = 0, whiffs = 0, interrupted = 0, hits = 0;
+                float time = 0f;
+                foreach (ulong seed in new ulong[] { 1, 2, 3 })
+                {
+                    var stage = new StageDef
+                    {
+                        id = "feel", displayName = "feel", waves = new[] { new WaveDef { spawns = new[] { new SpawnDef { enemy = "test_melee", x = 0f, y = 4f } } } },
+                        firstClearReward = new RewardDef(), repeatReward = new RewardDef()
+                    };
+                    var setup = new BattleSetup { stage = stage, seed = seed, keepLog = true };
+                    setup.party.Add(new PartyMemberSnapshot { characterId = c.id });
+                    var sim = new BattleSim(db, setup);
+                    // 적 등장 유예(타깃 불가) 동안은 대기 — 측정 왜곡 방지
+                    while (sim.FindNearestEnemy(sim.Body.pos, 99f) < 0 && sim.Tick < 120) sim.Step(PlayerInput.None);
+                    int begin = sim.Tick;
+                    for (int i = 0; i < 60 * 15 && sim.Outcome == BattleOutcome.InProgress; i++)
+                    {
+                        var input = PlayerInput.None;
+                        int t = sim.FindNearestEnemy(sim.Body.pos, 99f);
+                        if (t >= 0) input.move = (sim.FindEnemy(t).pos - sim.Body.pos).Normalized;
+                        input.attackPressed = i % 9 == 0;
+                        sim.Step(input);
+                    }
+                    time += sim.Time - begin * BattleSim.Dt;
+                    var log = sim.Log;
+                    var starts = log.Where(e => e.type == CombatEventType.ActionStart && e.action == ActionKind.Normal && e.tick > begin).ToList();
+                    foreach (var st in starts)
+                    {
+                        int end = log.Where(e => e.tick > st.tick && (e.type == CombatEventType.ActionStart || e.type == CombatEventType.Dodge)).Select(e => e.tick).DefaultIfEmpty(int.MaxValue).First();
+                        bool hit = log.Any(e => e.type == CombatEventType.Hit && e.action == ActionKind.Normal && e.tick >= st.tick && e.tick < end + 40 &&
+                                                (WeaponInfo.Category(c.weapon) != WeaponCategory.Melee || e.tick < end));
+                        bool cut = log.Any(e => e.type == CombatEventType.PlayerHit && e.tick >= st.tick && e.tick < end) && !hit;
+                        actions++;
+                        if (cut) interrupted++;
+                        else if (!hit) whiffs++;
+                    }
+                    hits += log.Count(e => e.type == CombatEventType.Hit && e.tick > begin);
+                }
+                var combo = db.GetWeapon(c.weapon).combo;
+                float kb = combo.Sum(sp => sp.knockback * sp.SafeHits);
+                float w = actions > 0 ? whiffs * 100f / actions : 0f;
+                float it = actions > 0 ? interrupted * 100f / actions : 0f;
+                sumWhiff += w;
+                sumInt += it;
+                n++;
+                Console.WriteLine($"  {WeaponInfo.Ko(c.weapon),-5}{w,7:0}%{it,8:0}%{hits / Math.Max(1f, time),8:0.0}{kb,12:0.00}m");
+            }
+            Console.WriteLine($"  평균 헛스윙 {sumWhiff / n:0}% · 평균 피격끊김 {sumInt / n:0}%");
         }
     }
 }

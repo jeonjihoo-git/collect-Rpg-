@@ -152,6 +152,9 @@ namespace Lumina.Core.Combat
         }
 
         public bool CanUltimate => Resonance >= P.ultimateCost && Body.action != ActionKind.Ultimate;
+        /// <summary>지금 새 행동(공격·스킬)을 시작할 수 있는가(대기/접근/연결 구간).</summary>
+        public bool ActionCancelable => IsCancelable();
+        public ElementReactionDef ReactionFor(Element aura, Element incoming) => _db.FindReaction(aura, incoming);
         public bool CanSkill => Active.skillCd <= 0f;
         public bool CanDodge => DodgeCd <= 0f;
 
@@ -272,6 +275,7 @@ namespace Lumina.Core.Combat
             switch (Body.action)
             {
                 case ActionKind.None:
+                case ActionKind.Approach:
                     return true;
                 case ActionKind.Normal:
                 case ActionKind.Skill:
@@ -317,23 +321,81 @@ namespace Lumina.Core.Combat
                 case ActionKind.Skill:
                 {
                     if (m.skillCd > 0f || !IsCancelable()) return false;
-                    m.skillCd = P.skillCooldown;
-                    StartAction(ActionKind.Skill, 0, isAuto);
+                    if (Body.action == ActionKind.Approach)
+                    {
+                        Body.approachKind = ActionKind.Skill;
+                        return true;
+                    }
+                    if (TryBeginApproach(ActionKind.Skill, m.weapon.skill, isAuto)) return true;
+                    BeginSkill(isAuto);
                     return true;
                 }
                 case ActionKind.Normal:
                 {
                     if (NormalCd > 0f || !IsCancelable()) return false;
-                    var combo = m.weapon.combo;
-                    int next = (_lastComboStep >= 0 && _comboChainTimer <= m.weapon.comboResetTime) ? (_lastComboStep + 1) % combo.Length : 0;
-                    StartAction(ActionKind.Normal, next, isAuto);
-                    NormalCd = combo[next].ChainTime;
-                    _lastComboStep = next;
-                    _comboChainTimer = 0f;
+                    if (Body.action == ActionKind.Approach) return true;
+                    if (TryBeginApproach(ActionKind.Normal, m.weapon.combo[NextComboStep(m)], isAuto)) return true;
+                    BeginNormal(isAuto);
                     return true;
                 }
             }
             return false;
+        }
+
+        private int NextComboStep(MemberState m)
+        {
+            var combo = m.weapon.combo;
+            return (_lastComboStep >= 0 && _comboChainTimer <= m.weapon.comboResetTime) ? (_lastComboStep + 1) % combo.Length : 0;
+        }
+
+        private void BeginNormal(bool isAuto)
+        {
+            var m = Active;
+            int next = NextComboStep(m);
+            StartAction(ActionKind.Normal, next, isAuto);
+            NormalCd = m.weapon.combo[next].ChainTime;
+            _lastComboStep = next;
+            _comboChainTimer = 0f;
+        }
+
+        private void BeginSkill(bool isAuto)
+        {
+            Active.skillCd = P.skillCooldown;
+            StartAction(ActionKind.Skill, 0, isAuto);
+        }
+
+        /// <summary>근접 판정이 정면으로 닿는 거리(몸 표면 기준, 전진 제외).</summary>
+        private static float MeleeReach(AttackStepDef d)
+        {
+            switch (d.shape)
+            {
+                case HitShape.Cone: return d.range * 0.85f;
+                case HitShape.Circle: return d.offset + d.radius * 0.8f;
+                case HitShape.Line: return d.range * 0.75f;
+                default: return 0f;
+            }
+        }
+
+        /// <summary>
+        /// 근접 접근 보조(가정 A-25): 가장 가까운 적이 사거리(+전진) 밖이지만 approachRange 안이면
+        /// 먼저 빠르게 붙고, 닿는 순간 실제 공격을 시작한다(ActionStart 기준 명중 프레임은 그대로).
+        /// </summary>
+        private bool TryBeginApproach(ActionKind kind, AttackStepDef def, bool isAuto)
+        {
+            if (WeaponInfo.Category(Active.weapon.id) != WeaponCategory.Melee) return false;
+            int target = FindNearestEnemy(Body.pos, T.softLockRange);
+            if (target < 0) return false;
+            var e = FindEnemy(target);
+            float gap = (e.pos - Body.pos).Length - e.def.radius - T.playerRadius;
+            float reach = MeleeReach(def) + def.lunge;
+            if (gap <= reach || gap > T.approachRange + reach) return false;
+            CancelAction();
+            Body.action = ActionKind.Approach;
+            Body.approachKind = kind;
+            Body.approachTimer = 0f;
+            Body.approachAuto = isAuto;
+            Body.lockTarget = target;
+            return true;
         }
 
         private bool TryTag(int to, PlayerInput input)
@@ -451,6 +513,9 @@ namespace Lumina.Core.Combat
                     if (Body.actionTime >= Body.actionDuration) CancelAction();
                     break;
                 }
+                case ActionKind.Approach:
+                    UpdateApproach(input);
+                    break;
                 case ActionKind.Normal:
                 case ActionKind.Skill:
                 case ActionKind.Ultimate:
@@ -536,12 +601,51 @@ namespace Lumina.Core.Combat
                 act.hitsResolved++;
             }
 
-            if (t >= def.ChainTime && input.move.SqrLength > 0.04f && Body.action != ActionKind.Ultimate)
+            if (t >= def.MoveCancelTime && input.move.SqrLength > 0.04f && Body.action != ActionKind.Ultimate)
             {
                 CancelAction();
                 return;
             }
             if (t >= Body.actionDuration) CancelAction();
+        }
+
+        private void UpdateApproach(PlayerInput input)
+        {
+            var e = FindEnemy(Body.lockTarget);
+            Body.approachTimer += Dt;
+            if (e == null || !e.Alive)
+            {
+                CancelAction();
+                return;
+            }
+            var m = Active;
+            var def = Body.approachKind == ActionKind.Skill ? m.weapon.skill : m.weapon.combo[NextComboStep(m)];
+            float reach = MeleeReach(def) + def.lunge;
+            Vec2 to = e.pos - Body.pos;
+            float dist = to.Length;
+            if (dist > 1e-4f) Body.facing = to / dist;
+            float gap = dist - e.def.radius - T.playerRadius;
+            float advance = MathF.Min(T.approachSpeed * Dt, MathF.Max(0f, gap - reach * 0.6f));
+            Body.pos += Body.facing * advance;
+            gap -= advance;
+            if (gap > reach * 0.9f && Body.approachTimer < T.approachMaxTime) return;
+
+            bool auto = Body.approachAuto;
+            if (Body.approachKind == ActionKind.Skill)
+            {
+                if (m.skillCd > 0f)
+                {
+                    CancelAction();
+                    return;
+                }
+                BeginSkill(auto);
+            }
+            else
+            {
+                BeginNormal(auto);
+            }
+            // 일반 경로(HandleInput 에서 시작)와 같은 틱 처리 → 명중 틱 = 시작 틱 + 선딜
+            UpdateAttackAction(input);
         }
 
         private void ResolveHit(ActionInstance act, int hitIndex)
@@ -759,6 +863,15 @@ namespace Lumina.Core.Combat
                     e.staggerTimer = P.breakStaggerSeconds;
                     brokeNow = true;
                 }
+            }
+
+            // 일반 적 피격 경직(보스·예고/공격 중·브레이크 중 제외, 연속 경직 방지 면역 시간) — 가정 A-24
+            if (!e.def.isBoss && e.ai == EnemyAi.Chase && !e.Staggered && Time >= e.flinchImmuneUntil)
+            {
+                float f = act.Tier == SfxTier.Ultimate ? T.enemyFlinchUltimate
+                    : act.Tier == SfxTier.Light || act.Tier == SfxTier.Medium ? T.enemyFlinchLight : T.enemyFlinchHeavy;
+                e.flinchTimer = MathF.Max(e.flinchTimer, f);
+                e.flinchImmuneUntil = Time + f + T.enemyFlinchImmunity;
             }
 
             // 넉백(음수=끌어당김)
@@ -1010,7 +1123,8 @@ namespace Lumina.Core.Combat
                         if (e.aiTimer <= 0f) e.ai = EnemyAi.Chase;
                         break;
                     case EnemyAi.Chase:
-                        UpdateChase(e);
+                        if (e.flinchTimer > 0f) e.flinchTimer -= Dt;
+                        else UpdateChase(e);
                         break;
                     case EnemyAi.Telegraph:
                         e.aiTimer -= Dt;

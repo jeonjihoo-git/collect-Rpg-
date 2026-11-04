@@ -1,5 +1,5 @@
 {
-  "note": "16개 무기 계열 목록은 [확정]. 각 단계의 타이밍/계수/판정은 수직 슬라이스 검증용 [Temp] 제안값이며 밸런스 승인 전 수정 대상. 일반공격 계수는 원본 기준 1타 0.12, 기본 간격 0.58초를 평균 축으로 무기별 분배.",
+  "note": "16개 무기 계열 목록은 [확정]. 각 단계의 타이밍/계수/판정은 수직 슬라이스 검증용 [Temp] 제안값이며 밸런스 승인 전 수정 대상. 일반공격 계수는 원본 기준 1타 0.12, 기본 간격 0.58초를 평균 축으로 무기별 분배. 2026-11-04: 이동 중 연타 시 헛스윙 감소를 위해 넉백 상한 적용(일반 0.15m·피니시 0.5m·스킬 0.9m·궁극기 0.8m) — 가정 A-27.",
   "weapons": [
     {
       "id": "Longsword",
@@ -23,7 +23,7 @@
           "lunge": 0.6,
           "breakDmg": 6,
           "hitstop": 0.05,
-          "knockback": 0.25,
+          "knockback": 0.15,
           "shake": 0.1
         },
         {
@@ -42,7 +42,7 @@
           "lunge": 0.6,
           "breakDmg": 6,
           "hitstop": 0.05,
-          "knockback": 0.25,
+          "knockback": 0.15,
           "shake": 0.1
         },
         {
@@ -61,7 +61,7 @@
           "lunge": 0.9,
           "breakDmg": 12,
           "hitstop": 0.09,
-          "knockback": 0.8,
+          "knockback": 0.5,
           "shake": 0.3
         }
       ],
@@ -82,7 +82,7 @@
         "lunge": 4.0,
         "breakDmg": 18,
         "hitstop": 0.1,
-        "knockback": 1.0,
+        "knockback": 0.9,
         "shake": 0.4
       },
       "ultimate": {
@@ -184,7 +184,7 @@
           "lunge": 1.4,
           "breakDmg": 8,
           "hitstop": 0.07,
-          "knockback": 0.6,
+          "knockback": 0.5,
           "shake": 0.2
         }
       ],
@@ -249,7 +249,7 @@
           "lunge": 0.5,
           "breakDmg": 18,
           "hitstop": 0.11,
-          "knockback": 1.0,
+          "knockback": 0.15,
           "shake": 0.45
         },
         {
@@ -268,7 +268,7 @@
           "lunge": 0.8,
           "breakDmg": 28,
           "hitstop": 0.14,
-          "knockback": 1.4,
+          "knockback": 0.5,
           "shake": 0.7
         }
       ],
@@ -288,7 +288,7 @@
         "lunge": 2.0,
         "breakDmg": 30,
         "hitstop": 0.14,
-        "knockback": 1.5,
+        "knockback": 0.9,
         "shake": 0.8
       },
       "ultimate": {
@@ -306,7 +306,7 @@
         "offset": 1.0,
         "breakDmg": 30,
         "hitstop": 0.16,
-        "knockback": 1.6,
+        "knockback": 0.8,
         "shake": 1.0
       },
       "status": "Temp",
@@ -435,7 +435,7 @@
           "lunge": 0.4,
           "breakDmg": 7,
           "hitstop": 0.05,
-          "knockback": 0.5,
+          "knockback": 0.15,
           "shake": 0.1
         },
         {
@@ -454,7 +454,7 @@
           "lunge": 0.4,
           "breakDmg": 7,
           "hitstop": 0.05,
-          "knockback": 0.5,
+          "knockback": 0.15,
           "shake": 0.1
         },
         {
@@ -473,7 +473,7 @@
           "lunge": 1.2,
           "breakDmg": 14,
           "hitstop": 0.09,
-          "knockback": 1.2,
+          "knockback": 0.5,
           "shake": 0.3
         }
       ],
@@ -494,7 +494,7 @@
         "lunge": 5.0,
         "breakDmg": 20,
         "hitstop": 0.11,
-        "knockback": 1.4,
+        "knockback": 0.9,
         "shake": 0.45
       },
       "ultimate": {
@@ -578,7 +578,7 @@
           "lunge": 0.4,
           "breakDmg": 6,
           "hitstop": 0.05,
-          "knockback": 0.2,
+          "knockback": 0.15,
           "shake": 0.1
         },
         {
@@ -597,7 +597,7 @@
           "lunge": 0.8,
           "breakDmg": 16,
           "hitstop": 0.1,
-          "knockback": 0.9,
+          "knockback": 0.5,
           "shake": 0.35
         }
       ],
@@ -636,7 +636,7 @@
         "lunge": 2.0,
         "breakDmg": 60,
         "hitstop": 0.2,
-        "knockback": 2.5,
+        "knockback": 0.8,
         "shake": 1.0
       },
       "status": "Temp",
@@ -700,7 +700,7 @@
           "radius": 3.4,
           "breakDmg": 14,
           "hitstop": 0.1,
-          "knockback": 0.8,
+          "knockback": 0.5,
           "shake": 0.35
         }
       ],
@@ -718,7 +718,7 @@
         "radius": 3.8,
         "breakDmg": 12,
         "hitstop": 0.08,
-        "knockback": -1.5,
+        "knockback": -0.6,
         "shake": 0.4
       },
       "ultimate": {
@@ -763,7 +763,7 @@
           "lunge": 0.5,
           "breakDmg": 14,
           "hitstop": 0.1,
-          "knockback": 0.6,
+          "knockback": 0.15,
           "shake": 0.4
         },
         {
@@ -782,7 +782,7 @@
           "lunge": 0.5,
           "breakDmg": 14,
           "hitstop": 0.1,
-          "knockback": 0.6,
+          "knockback": 0.15,
           "shake": 0.4
         },
         {
@@ -801,7 +801,7 @@
           "lunge": 0.7,
           "breakDmg": 24,
           "hitstop": 0.14,
-          "knockback": 1.1,
+          "knockback": 0.5,
           "shake": 0.7
         }
       ],
@@ -821,7 +821,7 @@
         "lunge": 0.5,
         "breakDmg": 26,
         "hitstop": 0.13,
-        "knockback": 1.2,
+        "knockback": 0.9,
         "shake": 0.75
       },
       "ultimate": {
@@ -839,7 +839,7 @@
         "offset": 1.0,
         "breakDmg": 22,
         "hitstop": 0.15,
-        "knockback": 1.2,
+        "knockback": 0.8,
         "shake": 1.0
       },
       "status": "Temp",
@@ -867,7 +867,7 @@
           "speed": 28,
           "breakDmg": 4,
           "hitstop": 0.03,
-          "knockback": 0.2,
+          "knockback": 0.15,
           "shake": 0.05
         },
         {
@@ -886,7 +886,7 @@
           "speed": 28,
           "breakDmg": 4,
           "hitstop": 0.03,
-          "knockback": 0.2,
+          "knockback": 0.15,
           "shake": 0.05
         },
         {
@@ -906,7 +906,7 @@
           "pierce": true,
           "breakDmg": 8,
           "hitstop": 0.06,
-          "knockback": 0.6,
+          "knockback": 0.5,
           "shake": 0.15
         }
       ],
@@ -974,7 +974,7 @@
           "speed": 40,
           "breakDmg": 6,
           "hitstop": 0.05,
-          "knockback": 0.4,
+          "knockback": 0.15,
           "shake": 0.1
         },
         {
@@ -993,7 +993,7 @@
           "speed": 42,
           "breakDmg": 8,
           "hitstop": 0.06,
-          "knockback": 0.6,
+          "knockback": 0.15,
           "shake": 0.15
         }
       ],
@@ -1014,7 +1014,7 @@
         "explodeRadius": 2.2,
         "breakDmg": 20,
         "hitstop": 0.1,
-        "knockback": 1.0,
+        "knockback": 0.9,
         "shake": 0.4
       },
       "ultimate": {
@@ -1190,7 +1190,7 @@
           "explodeRadius": 2.2,
           "breakDmg": 16,
           "hitstop": 0.1,
-          "knockback": 1.0,
+          "knockback": 0.15,
           "shake": 0.55
         }
       ],
@@ -1231,7 +1231,7 @@
         "delay": 0.45,
         "breakDmg": 16,
         "hitstop": 0.12,
-        "knockback": 1.0,
+        "knockback": 0.8,
         "shake": 1.0
       },
       "status": "Temp",
@@ -1260,7 +1260,7 @@
           "explodeRadius": 1.0,
           "breakDmg": 5,
           "hitstop": 0.04,
-          "knockback": 0.3,
+          "knockback": 0.15,
           "shake": 0.08
         },
         {
@@ -1280,7 +1280,7 @@
           "explodeRadius": 1.0,
           "breakDmg": 5,
           "hitstop": 0.04,
-          "knockback": 0.3,
+          "knockback": 0.15,
           "shake": 0.08
         },
         {
@@ -1300,7 +1300,7 @@
           "explodeRadius": 1.6,
           "breakDmg": 10,
           "hitstop": 0.07,
-          "knockback": 0.7,
+          "knockback": 0.5,
           "shake": 0.25
         }
       ],
@@ -1365,7 +1365,7 @@
           "delay": 0.15,
           "breakDmg": 5,
           "hitstop": 0.04,
-          "knockback": 0.3,
+          "knockback": 0.15,
           "shake": 0.08
         },
         {
@@ -1384,7 +1384,7 @@
           "delay": 0.15,
           "breakDmg": 5,
           "hitstop": 0.04,
-          "knockback": 0.3,
+          "knockback": 0.15,
           "shake": 0.08
         },
         {
@@ -1403,7 +1403,7 @@
           "delay": 0.2,
           "breakDmg": 10,
           "hitstop": 0.07,
-          "knockback": 0.6,
+          "knockback": 0.5,
           "shake": 0.25
         }
       ],
@@ -1470,7 +1470,7 @@
           "delay": 0.2,
           "breakDmg": 7,
           "hitstop": 0.05,
-          "knockback": 0.4,
+          "knockback": 0.15,
           "shake": 0.12
         },
         {
@@ -1489,7 +1489,7 @@
           "delay": 0.25,
           "breakDmg": 11,
           "hitstop": 0.08,
-          "knockback": 0.7,
+          "knockback": 0.5,
           "shake": 0.3
         }
       ],
@@ -1556,7 +1556,7 @@
           "speed": 12,
           "breakDmg": 5,
           "hitstop": 0.04,
-          "knockback": 0.5,
+          "knockback": 0.15,
           "shake": 0.08
         },
         {
@@ -1575,7 +1575,7 @@
           "speed": 12,
           "breakDmg": 5,
           "hitstop": 0.04,
-          "knockback": 0.5,
+          "knockback": 0.15,
           "shake": 0.08
         },
         {
@@ -1594,7 +1594,7 @@
           "speed": 14,
           "breakDmg": 10,
           "hitstop": 0.07,
-          "knockback": 0.9,
+          "knockback": 0.5,
           "shake": 0.25
         }
       ],
@@ -1633,7 +1633,7 @@
         "speed": 16,
         "breakDmg": 14,
         "hitstop": 0.1,
-        "knockback": 1.0,
+        "knockback": 0.8,
         "shake": 0.8
       },
       "status": "Temp",

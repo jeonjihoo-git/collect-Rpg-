@@ -80,6 +80,8 @@ namespace Lumina.Tests
                     arr.Add(Stage("t_dummy", "t_dummy", 0f, -2.2f));
                     arr.Add(Stage("t_striker", "t_striker", 0f, -1.0f));
                     arr.Add(Stage("t_weak", "t_weak", 0f, -2.2f));
+                    arr.Add(Stage("t_far", "t_dummy", 0f, 0f));
+                    arr.Add(Stage("t_boss", "boss_erosion_phantom", 0f, -1.5f));
                     return o.ToString();
                 }
                 return text;

@@ -40,21 +40,27 @@ URP 패키지 버전 오류가 나면 *Window → Package Manager*에서 Univers
 ## 2. Unity 없이 검증 (Windows/Mac/Linux, .NET 8 SDK)
 
 ```bash
-dotnet test tools/Lumina.Core.Tests                       # 코어 규칙 테스트 82개 (QA 체크리스트 매핑)
+dotnet test tools/Lumina.Core.Tests                       # 코어 규칙 테스트 88개 (QA 체크리스트 매핑)
 dotnet run --project tools/Lumina.Sim -- flow             # 로비→스테이지→편성→전투→결과→저장 헤드리스 전체 흐름
 dotnet run --project tools/Lumina.Sim -- sfx sim_out/sfx  # 16무기 효과음 WAV + 실제 전투 타이밍 쇼케이스
 dotnet run --project tools/Lumina.Sim -- ttk              # 무기별 처치 시간 표
 dotnet run --project tools/Lumina.Sim -- feel             # 이동하며 연타 시 헛스윙/피격 끊김 진단
+dotnet run --project tools/Lumina.Sim -- motion sim_out/motion.json   # 16무기 모션 관절 좌표
+python3 tools/preview/render_motion.py sim_out/motion.json motion.mp4  # 모션 미리보기 영상(matplotlib+ffmpeg)
+dotnet run --project tools/Lumina.Sim -- slots            # 실제 음원 교체 슬롯 목록(docs/SFX_ASSET_SLOTS.md) 갱신
 dotnet build tools/UnityCompileCheck/Player/UnityCompileCheck.Player.csproj   # Unity 런타임 코드 컴파일 검사
 dotnet build tools/UnityCompileCheck/Editor/UnityCompileCheck.Editor.csproj   # 에디터 스크립트 컴파일 검사
 ```
 
 `Assets/Lumina/Tests/EditMode`의 테스트는 Unity *Test Runner(EditMode)* 에서도 같은 파일 그대로 실행됩니다.
 
+### 실제 음원으로 바꾸기
+`Assets/Lumina/Resources/LuminaSfx/<무기>/<종류>.wav`(예: `Longsword/Impact.wav`, 등급별 `Longsword/Impact_Finisher.wav`)를 넣으면 코드 수정 없이 합성음 대신 재생됩니다. 전체 슬롯과 길이·타이밍 가이드는 [`docs/SFX_ASSET_SLOTS.md`](docs/SFX_ASSET_SLOTS.md)에 있습니다.
+
 ## 3. 구조 요약
 
 ```
-Assets/Lumina/Core       순수 C# 규칙(데이터·전투·저장·효과음 합성) — Unity·dotnet 공용
+Assets/Lumina/Core       순수 C# 규칙(데이터·전투·저장·효과음 합성·공격 모션 키프레임) — Unity·dotnet 공용
 Assets/Lumina/Runtime    Unity 화면·연출·입력·오디오
 Assets/Lumina/Editor     자동 설정·WAV 내보내기
 Assets/Lumina/Resources/LuminaData   정의 데이터(JSON, status=Confirmed/Prototype/Temp)

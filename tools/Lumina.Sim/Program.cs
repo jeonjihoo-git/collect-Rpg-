@@ -5,6 +5,7 @@ using System.Linq;
 using Lumina.Core.Audio;
 using Lumina.Core.Combat;
 using Lumina.Core.Data;
+using Lumina.Core.Presentation;
 using Lumina.Core.Progress;
 using Lumina.Core.Util;
 
@@ -16,6 +17,8 @@ namespace Lumina.Sim
     ///   dotnet run --project tools/Lumina.Sim -- sfx  [출력폴더]     무기별 효과음 WAV + 전투 이벤트 기반 쇼케이스
     ///   dotnet run --project tools/Lumina.Sim -- ttk                 무기별 처치 시간 표
     ///   dotnet run --project tools/Lumina.Sim -- feel                '이동하며 연타' 조작의 헛스윙/끊김 진단
+    ///   dotnet run --project tools/Lumina.Sim -- slots [md]          실제 음원 교체 슬롯 목록 문서 생성
+    ///   dotnet run --project tools/Lumina.Sim -- motion [json]       16무기 모션 관절 좌표(미리보기 영상용, tools/preview/render_motion.py)
     /// </summary>
     public static class Program
     {
@@ -36,6 +39,8 @@ namespace Lumina.Sim
                 case "sfx": Sfx(db, arg ?? Path.Combine("sim_out", "sfx")); break;
                 case "ttk": Ttk(db); break;
                 case "feel": Feel(db); break;
+                case "slots": Slots(arg ?? Path.Combine("docs", "SFX_ASSET_SLOTS.md")); break;
+                case "motion": Motion(db, arg ?? Path.Combine("sim_out", "motion.json")); break;
                 default:
                     Console.WriteLine("알 수 없는 명령: " + cmd);
                     return 2;
@@ -357,6 +362,100 @@ namespace Lumina.Sim
                 Console.WriteLine($"  {WeaponInfo.Ko(c.weapon),-5}{w,7:0}%{it,8:0}%{hits / Math.Max(1f, time),8:0.0}{kb,12:0.00}m");
             }
             Console.WriteLine($"  평균 헛스윙 {sumWhiff / n:0}% · 평균 피격끊김 {sumInt / n:0}%");
+        }
+
+        // ───────────────────────── slots ─────────────────────────
+
+        /// <summary>Resources/LuminaSfx/ 교체 음원 슬롯 목록(사운드 디자이너 전달용).</summary>
+        private static void Slots(string outPath)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("# 실제 음원 교체 슬롯 (자동 생성: `dotnet run --project tools/Lumina.Sim -- slots`)");
+            sb.AppendLine();
+            sb.AppendLine("`Assets/Lumina/Resources/LuminaSfx/` 아래에 **아래 경로 + 확장자(.wav/.ogg)** 로 파일을 넣으면, 그 소리가 절차 합성음 대신 재생됩니다. 코드 수정 불필요.");
+            sb.AppendLine("- 등급(Tier)별 파일이 없으면 `종류` 공통 파일(예: `Longsword/Impact.wav`)을 찾고, 그것도 없으면 합성음을 씁니다.");
+            sb.AppendLine("- 명중음(Impact)은 **피해가 들어간 그 틱**에 재생됩니다. 파일 앞부분에 무음이 있으면 타격감이 늦어지므로 **앞 무음 0ms** 로 잘라 주세요.");
+            sb.AppendLine("- 휘두름(Swing)은 **명중 시각보다 선행 시간만큼 먼저** 재생됩니다. 소리의 가장 큰 지점이 파일 시작에서 선행 시간 위치에 오도록 만들어 주세요.");
+            sb.AppendLine("- 같은 소리 반복감 방지를 위해 재생 시 피치가 ±3% 무작위로 흔들립니다.");
+            sb.AppendLine();
+            sb.AppendLine("| 무기 | 슬롯 경로(등급별 파일 우선 → 없으면 공통 파일) | 재생 시점 | 길이 가이드 | 휘두름 선행 |");
+            sb.AppendLine("|---|---|---|---|---|");
+            foreach (var w in WeaponInfo.All)
+            {
+                bool melee = WeaponInfo.Category(w) == WeaponCategory.Melee;
+                var kinds = melee ? new[] { SfxKind.Swing, SfxKind.Impact, SfxKind.Tail } : new[] { SfxKind.Cast, SfxKind.Projectile, SfxKind.Impact, SfxKind.Tail };
+                foreach (var k in kinds)
+                {
+                    string when = k == SfxKind.Swing ? "명중 − 선행" : k == SfxKind.Cast ? "공격 시작(당김·장전·충전)" : k == SfxKind.Projectile ? "발사·발동" : k == SfxKind.Impact ? "명중(피해 적용 틱)" : "강타 명중 잔향";
+                    string len = k == SfxKind.Swing ? "0.1~0.45초" : k == SfxKind.Cast ? "선딜 길이(0.06~0.85초)" : k == SfxKind.Impact ? (w == WeaponType.Launcher ? "0.8~1.5초" : "0.1~0.5초") : k == SfxKind.Tail ? "0.3~1.5초" : "0.1~0.5초";
+                    string lead = k == SfxKind.Swing ? $"{SfxTiming.SwingLead(w) * 1000:0}ms" : "-";
+                    sb.AppendLine($"| {WeaponInfo.Ko(w)} | `{w}/{k}_<Light·Medium·Heavy·Finisher·Skill·Ultimate>` → `{w}/{k}` | {when} | {len} | {lead} |");
+                }
+            }
+            sb.AppendLine();
+            sb.AppendLine("| 대상 재질(피격 반응) | 슬롯 경로 |");
+            sb.AppendLine("|---|---|");
+            foreach (EnemyMaterial m in Enum.GetValues(typeof(EnemyMaterial))) sb.AppendLine($"| {m} | `Reaction/{m}_<Tier>` → `Reaction/{m}` |");
+            sb.AppendLine();
+            sb.AppendLine("| 시스템 | 슬롯 경로 |");
+            sb.AppendLine("|---|---|");
+            foreach (SystemSfx x in Enum.GetValues(typeof(SystemSfx))) sb.AppendLine($"| {x} | `System/{x}` |");
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
+            File.WriteAllText(outPath, sb.ToString());
+            Console.WriteLine($"\n[슬롯] {Path.GetFullPath(outPath)}");
+        }
+
+        // ───────────────────────── motion ─────────────────────────
+
+        /// <summary>16무기: 일반 콤보 전체 → 스킬 → 궁극기를 30fps 로 샘플링한 관절 좌표(Core MotionLibrary 그대로).</summary>
+        private static void Motion(GameDatabase db, string outPath)
+        {
+            const float fps = 60f;
+            var all = new List<object>();
+            foreach (var wd in db.Weapons.Values.OrderBy(x => (int)x.id))
+            {
+                var frames = new List<object>();
+                var segs = new List<(ActionKind kind, int step, AttackStepDef def, string label)>();
+                for (int i = 0; i < wd.combo.Length; i++) segs.Add((ActionKind.Normal, i, wd.combo[i], $"Normal {i + 1}"));
+                segs.Add((ActionKind.Skill, 0, wd.skill, "Skill"));
+                segs.Add((ActionKind.Ultimate, 0, wd.ultimate, "Ultimate"));
+                object Frame(Pose p, bool hit, string label)
+                {
+                    var j = MotionLibrary.Solve(wd.id, p);
+                    var tl = MotionLibrary.TipLeft(wd.id, p);
+                    float[] P(V3 v) => new[] { (float)Math.Round(v.x, 3), (float)Math.Round(v.y, 3), (float)Math.Round(v.z, 3) };
+                    return new
+                    {
+                        footR = P(j.footR), footL = P(j.footL), hipR = P(j.hipR), hipL = P(j.hipL), waist = P(j.waist), neck = P(j.neck), head = P(j.head),
+                        shR = P(j.shoulderR), shL = P(j.shoulderL), handR = P(j.handR), handL = P(j.handL), tip = P(j.tip), grip = P(j.grip), tipL = P(tl),
+                        trail = p.trail > 0.5f, hit, label
+                    };
+                }
+                void Add(Pose p, bool hit, string label) => frames.Add(Frame(p, hit, label));
+                var c0 = wd.combo[0];
+                object contact = Frame(MotionLibrary.Attack(wd.id, ActionKind.Normal, 0, c0, c0.startup, out _, out _), true, "Normal 1 @hit");
+                for (int f = 0; f < 9; f++) Add(MotionLibrary.Rest(wd.id), false, "Idle");
+                foreach (var sg in segs)
+                {
+                    int n = (int)MathF.Ceiling((sg.def.TotalDuration + 0.05f) * fps);
+                    for (int f = 0; f < n; f++)
+                    {
+                        float t = f / fps;
+                        bool hit = false;
+                        for (int h = 0; h < sg.def.SafeHits; h++)
+                        {
+                            float H = sg.def.startup + h * sg.def.hitInterval;
+                            if (H >= t - 0.5f / fps && H < t + 0.5f / fps) hit = true;
+                        }
+                        Add(MotionLibrary.Attack(wd.id, sg.kind, sg.step, sg.def, t, out _, out _), hit, sg.label);
+                    }
+                    for (int f = 0; f < 6; f++) Add(MotionLibrary.Rest(wd.id), false, sg.label);
+                }
+                all.Add(new { weapon = wd.id.ToString(), twoHanded = MotionLibrary.Profile(wd.id).twoHanded, dual = MotionLibrary.Profile(wd.id).dual, contact, frames });
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
+            File.WriteAllText(outPath, Newtonsoft.Json.JsonConvert.SerializeObject(new { fps, weapons = all }));
+            Console.WriteLine($"\n[모션] {Path.GetFullPath(outPath)}");
         }
     }
 }

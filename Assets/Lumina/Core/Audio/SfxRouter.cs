@@ -31,6 +31,20 @@ namespace Lumina.Core.Audio
             }
         }
 
+        /// <summary>
+        /// 실제 음원 교체 슬롯(Resources/LuminaSfx/ 기준, 확장자 제외). 앞 경로부터 찾고, 없으면 절차 합성음을 쓴다.
+        /// 예: Longsword/Impact_Finisher → Longsword/Impact. 목록은 docs/SFX_ASSET_SLOTS.md.
+        /// </summary>
+        public string[] AssetPaths
+        {
+            get
+            {
+                if (isSystem) return new[] { $"System/{system}" };
+                if (kind == SfxKind.HitReaction) return new[] { $"Reaction/{material}_{tier}", $"Reaction/{material}" };
+                return new[] { $"{weapon}/{kind}_{tier}", $"{weapon}/{kind}" };
+            }
+        }
+
         public float[] Render(int variant)
         {
             if (isSystem) return SfxSynth.RenderSystem(system, elementA, elementB, variant);

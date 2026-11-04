@@ -98,7 +98,86 @@ namespace Lumina.Core.Audio
                 b = Dsp.Thump(b, 0f, 90f, 38f, 0.05f, 0.16f, 0.6f);
                 b = Dsp.Rumble(b, 0.01f, 0.6f, 260f, 0.01f, 0.25f, 0.35f, rng);
             }
-            return Dsp.Finish(b, kind == SfxKind.Swing || kind == SfxKind.Cast ? TierPeak(tier) * 0.75f : TierPeak(tier));
+            Space(w, kind, tier, out float wet, out float room, out float damp);
+            b = Dsp.Reverb(b, wet, room, damp);
+            return Dsp.Finish(b, kind == SfxKind.Swing || kind == SfxKind.Cast ? TierPeak(tier) * 0.75f : TierPeak(tier), Drive(w, kind, tier));
+        }
+
+        /// <summary>무기·이벤트별 공간감(잔향): 칼날은 짧고 밝게, 둔기는 넓게, 총·런처·마법은 길게 울린다.</summary>
+        public static void Space(WeaponType w, SfxKind kind, SfxTier tier, out float wet, out float room, out float damp)
+        {
+            wet = 0.12f;
+            room = 0.4f;
+            damp = 0.5f;
+            switch (w)
+            {
+                case WeaponType.Longsword:
+                case WeaponType.Dagger:
+                case WeaponType.DualBlades:
+                    wet = 0.1f; room = 0.32f; damp = 0.35f; break;
+                case WeaponType.Greatsword:
+                case WeaponType.Axe:
+                    wet = 0.16f; room = 0.55f; damp = 0.6f; break;
+                case WeaponType.Spear:
+                case WeaponType.Scythe:
+                case WeaponType.Gauntlet:
+                    wet = 0.13f; room = 0.42f; damp = 0.5f; break;
+                case WeaponType.Bow:
+                case WeaponType.Crossbow:
+                    wet = 0.11f; room = 0.4f; damp = 0.45f; break;
+                case WeaponType.Gun:
+                    wet = 0.32f; room = 0.72f; damp = 0.4f; break;
+                case WeaponType.Launcher:
+                    wet = 0.3f; room = 0.85f; damp = 0.65f; break;
+                default:
+                    wet = 0.24f; room = 0.62f; damp = 0.3f; break;
+            }
+            if (kind == SfxKind.Swing) wet *= 0.5f;
+            if (kind == SfxKind.Tail) wet *= 1.6f;
+            if (tier == SfxTier.Ultimate)
+            {
+                wet += 0.08f;
+                room = MathF.Min(0.95f, room + 0.15f);
+            }
+        }
+
+        /// <summary>새츄레이션 강도: 둔기·총은 두껍게, 휘두름/캐스팅은 깨끗하게.</summary>
+        public static float Drive(WeaponType w, SfxKind kind, SfxTier tier)
+        {
+            if (kind == SfxKind.Swing || kind == SfxKind.Cast) return 1.05f;
+            float d = 1.6f;
+            switch (w)
+            {
+                case WeaponType.Greatsword:
+                case WeaponType.Axe:
+                case WeaponType.Gauntlet:
+                    d = 2.3f; break;
+                case WeaponType.Gun:
+                    d = kind == SfxKind.Projectile ? 2.8f : 2f; break;
+                case WeaponType.Launcher:
+                    d = 2.4f; break;
+                case WeaponType.Staff:
+                case WeaponType.Grimoire:
+                case WeaponType.Scroll:
+                case WeaponType.MagicRing:
+                    d = 1.35f; break;
+            }
+            if (tier == SfxTier.Finisher || tier == SfxTier.Ultimate) d += 0.3f;
+            return d;
+        }
+
+        /// <summary>칼날 절삭 '슥-' : 고역에서 아래로 빠르게 쓸어내리는 노이즈.</summary>
+        private static float[] Slice(float[] b, float start, float dur, float fHi, float fLo, float gain, DeterministicRng rng)
+        {
+            return Dsp.Whoosh(b, start, dur, 0.08f, fHi, fLo, 2.2f, gain, rng);
+        }
+
+        /// <summary>살/몸통 타격 '퍽' : 저역 통과 노이즈 + 짧은 저음.</summary>
+        private static float[] Thwack(float[] b, float start, float weight, DeterministicRng rng)
+        {
+            b = Dsp.NoiseHit(b, start, 0.0008f, 0.02f + 0.02f * weight, 90f, 1200f + 600f * (1f - weight), 0.9f, rng);
+            b = Dsp.Thump(b, start, 130f - 40f * weight, 55f, 0.015f, 0.035f + 0.04f * weight, 0.8f * (0.6f + 0.4f * weight));
+            return b;
         }
 
         // ───────────── swing: 근접 휘두름(피크 = SfxTiming.SwingLead) ─────────────
@@ -206,6 +285,8 @@ namespace Lumina.Core.Audio
             switch (w)
             {
                 case WeaponType.Bow:
+                    b = Dsp.Whoosh(b, 0.004f, 0.07f, 0.15f, 2200f, 6500f, 2.5f, 0.45f, rng);
+                    b = Dsp.Pluck(b, 0f, 92f, 0.12f, 0.99f, 0.35f, rng);
                     b = Dsp.Pluck(b, 0f, 175f, 0.16f * k, 0.985f, 0.7f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0005f, 0.006f, 2000f, 9000f, 0.5f, rng);
                     b = Dsp.Whoosh(b, 0.02f, 0.26f, 0.3f, 3200f, 2300f, 7f, 0.35f, rng);
@@ -217,6 +298,8 @@ namespace Lumina.Core.Audio
                     b = Dsp.Thump(b, 0f, 140f, 90f, 0.01f, 0.03f, 0.6f);
                     break;
                 case WeaponType.Gun:
+                    b = Dsp.NoiseHit(b, 0f, 0.0002f, 0.004f, 200f, 16000f, 1.4f, rng);
+                    b = Dsp.NoiseHit(b, 0.001f, 0.001f, 0.015f, 800f, 1800f, 0.6f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0004f, 0.01f * k, 1000f, 12000f, 1.2f, rng);
                     b = Dsp.Thump(b, 0f, 170f, 55f, 0.015f, 0.06f * k, 0.9f);
                     b = Dsp.Rumble(b, 0.003f, 0.25f * k, 900f, 0.002f, 0.06f * k, 0.4f, rng);
@@ -257,63 +340,83 @@ namespace Lumina.Core.Audio
             switch (w)
             {
                 case WeaponType.Longsword:
+                    b = Slice(b, 0f, 0.06f * k, 5500f, 1700f, 0.7f, rng);
+                    b = Thwack(b, 0.004f, 0.55f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0005f, 0.012f * k, 2500f, 9000f, 0.9f, rng);
                     b = Dsp.Thump(b, 0f, 180f, 90f, 0.02f, 0.035f * k, 0.55f);
                     b = Dsp.Metal(b, 0.001f, 2300f, new[] { 1f, 2.76f, 5.4f }, new[] { 0.04f, 0.025f, 0.015f }, 0.16f);
                     if (big) b = Dsp.Thump(b, 0.004f, 120f, 60f, 0.03f, 0.08f, 0.6f);
                     break;
                 case WeaponType.Dagger:
+                    b = Slice(b, 0f, 0.03f, 10000f, 4500f, 0.6f, rng);
+                    b = Thwack(b, 0.002f, 0.1f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0003f, 0.006f * k, 3500f, 11000f, 0.8f, rng);
                     b = Dsp.Thump(b, 0f, 240f, 140f, 0.01f, 0.018f * k, 0.35f);
                     b = Dsp.Click(b, 0.001f, 5200f, 0.0015f, 0.2f);
                     break;
                 case WeaponType.Greatsword:
+                    b = Thwack(b, 0f, 1f, rng);
+                    b = Dsp.NoiseHit(b, 0.002f, 0.001f, 0.05f * k, 150f, 2500f, 0.8f, rng);
+                    b = Dsp.Thump(b, 0f, 75f, 40f, 0.04f, 0.14f * k, 0.9f);
                     b = Dsp.Thump(b, 0f, 110f, 45f, 0.04f, 0.11f * k, 1f);
                     b = Dsp.NoiseHit(b, 0f, 0.001f, 0.04f * k, 400f, 4000f, 0.7f, rng);
                     b = Dsp.Metal(b, 0.002f, 420f, new[] { 1f, 1.58f, 2.31f, 3.4f }, new[] { 0.16f, 0.12f, 0.09f, 0.06f }, 0.28f);
                     b = Dsp.Rumble(b, 0.005f, 0.6f, 300f, 0.01f, 0.2f * k, 0.4f, rng);
                     break;
                 case WeaponType.DualBlades:
+                    b = Slice(b, 0f, 0.04f, 7500f, 2500f, 0.55f, rng);
+                    b = Slice(b, 0.022f, 0.04f, 8000f, 2800f, 0.5f, rng);
+                    b = Thwack(b, 0.003f, 0.25f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0004f, 0.008f, 2800f, 10000f, 0.7f, rng);
                     b = Dsp.NoiseHit(b, 0.022f, 0.0004f, 0.008f, 3200f, 11000f, 0.6f, rng);
                     b = Dsp.Thump(b, 0f, 200f, 110f, 0.015f, 0.025f * k, 0.4f);
                     b = Dsp.Metal(b, 0.023f, 3100f, new[] { 1f, 2.4f }, new[] { 0.02f, 0.012f }, 0.12f);
                     break;
                 case WeaponType.Spear:
+                    b = Thwack(b, 0.004f, 0.5f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0006f, 0.015f * k, 1200f, 2200f, 1f, rng);
                     b = Dsp.Thump(b, 0f, 150f, 80f, 0.02f, 0.045f * k, 0.6f);
                     b = Dsp.Whoosh(b, 0.06f, 0.12f, 0.2f, 3000f, 1500f, 3f, 0.25f, rng);
                     break;
                 case WeaponType.Gauntlet:
+                    b = Thwack(b, 0f, 0.8f, rng);
+                    b = Dsp.NoiseHit(b, 0f, 0.0004f, 0.006f, 2500f, 9000f, 0.4f, rng);
                     b = Dsp.Thump(b, 0f, 120f, 55f, 0.025f, 0.07f * k, 1f);
                     b = Dsp.NoiseHit(b, 0f, 0.0008f, 0.009f, 300f, 3000f, 0.75f, rng);
                     b = Dsp.Click(b, 0f, 2200f, 0.003f, 0.3f);
                     b = Dsp.Metal(b, 0.001f, 900f, new[] { 1f, 2.2f }, new[] { 0.03f, 0.02f }, 0.1f);
                     break;
                 case WeaponType.Scythe:
+                    b = Slice(b, 0f, 0.08f * k, 6500f, 1600f, 0.75f, rng);
+                    b = Thwack(b, 0.006f, 0.5f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0006f, 0.018f * k, 2000f, 9000f, 0.85f, rng);
                     b = Dsp.NoiseHit(b, 0.01f, 0.03f, 0.22f * k, 4000f, 12000f, 0.3f, rng);
                     b = Dsp.Thump(b, 0f, 160f, 90f, 0.02f, 0.04f * k, 0.5f);
                     break;
                 case WeaponType.Axe:
+                    b = Thwack(b, 0f, 0.9f, rng);
+                    b = Dsp.NoiseHit(b, 0.001f, 0.001f, 0.035f * k, 250f, 3000f, 0.7f, rng);
                     b = Dsp.Thump(b, 0f, 140f, 70f, 0.02f, 0.06f * k, 1f);
                     b = Dsp.Thump(b, 0f, 320f, 300f, 0.5f, 0.02f, 0.45f);
                     b = Dsp.NoiseHit(b, 0f, 0.0008f, 0.025f * k, 600f, 5000f, 0.75f, rng);
                     b = Dsp.Whoosh(b, 0.09f, 0.1f, 0.3f, 1200f, 500f, 2f, 0.25f, rng);
                     break;
                 case WeaponType.Bow:
+                    b = Thwack(b, 0.002f, 0.35f, rng);
                     b = Dsp.Thump(b, 0f, 220f, 120f, 0.012f, 0.03f * k, 0.8f);
                     b = Dsp.Thump(b, 0f, 700f, 690f, 1f, 0.012f, 0.3f);
                     b = Dsp.Thump(b, 0.002f, 1100f, 1090f, 1f, 0.008f, 0.2f);
                     b = Dsp.NoiseHit(b, 0f, 0.0006f, 0.012f, 400f, 2500f, 0.5f, rng);
                     break;
                 case WeaponType.Crossbow:
+                    b = Thwack(b, 0.002f, 0.5f, rng);
                     b = Dsp.Thump(b, 0f, 180f, 90f, 0.015f, 0.045f * k, 0.9f);
                     b = Dsp.NoiseHit(b, 0f, 0.0005f, 0.018f * k, 800f, 6000f, 0.75f, rng);
                     b = Dsp.Metal(b, 0f, 1800f, new[] { 1f, 2.7f }, new[] { 0.02f, 0.012f }, 0.2f);
                     b = Dsp.Crackle(b, 0.005f, 0.05f, 900f, 0.02f, 1500f, 0.3f, rng);
                     break;
                 case WeaponType.Gun:
+                    b = Thwack(b, 0.001f, 0.3f, rng);
                     b = Dsp.NoiseHit(b, 0f, 0.0002f, 0.005f, 3000f, 12000f, 0.85f, rng);
                     b = Dsp.Thump(b, 0f, 300f, 150f, 0.008f, 0.018f * k, 0.5f);
                     b = Dsp.Crackle(b, 0.004f, 0.06f, 1200f, 0.025f, 2500f, 0.25f, rng);
@@ -345,6 +448,7 @@ namespace Lumina.Core.Audio
                     b = Dsp.Crackle(b, 0.01f, 0.15f, 600f, 0.07f, 3000f, 0.35f, rng);
                     break;
                 case WeaponType.MagicRing:
+                    b = Dsp.Tone(b, 0f, 0.2f * k, 186f, 92f, Dsp.Wave.Saw, 0f, 0f, 0.002f, 0.14f, 0.3f, 1100f);
                     b = Dsp.Tone(b, 0f, 0.18f * k, 180f, 90f, Dsp.Wave.Saw, 0f, 0f, 0.002f, 0.12f, 0.5f, 900f);
                     b = Dsp.NoiseHit(b, 0f, 0.001f, 0.02f, 1000f, 4000f, 0.6f, rng);
                     b = Dsp.Whoosh(b, 0f, 0.14f, 0.2f, 1500f, 600f, 2f, 0.3f, rng);

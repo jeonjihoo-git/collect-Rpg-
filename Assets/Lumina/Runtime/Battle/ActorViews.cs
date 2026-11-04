@@ -1,13 +1,16 @@
 using Lumina.Core.Audio;
 using Lumina.Core.Combat;
 using Lumina.Core.Data;
+using Lumina.Core.Presentation;
 using UnityEngine;
+using MPose = Lumina.Core.Presentation.Pose;
 
 namespace Lumina.Runtime.Battle
 {
     /// <summary>
-    /// 파티원 임시 모형 + 절차 애니메이션. 포즈는 코어 시뮬레이션의 행동 시간(actionTime)과 공격 정의(startup)에서
-    /// 직접 계산되므로, 무기가 정면을 가로지르는 순간 = 명중 틱 = 타격음 재생 시점이 항상 일치한다.
+    /// 파티원 임시 모형 + 절차 애니메이션. 포즈는 Core 의 MotionLibrary(테스트로 검증된 키프레임)에서 계산되며,
+    /// 무기 끝이 가장 빠르게 정면을 지나는 순간 = 명중 틱 = 타격음 재생 시점이다.
+    /// 계층: root(위치·방향) → model(몸 전체) → 다리 / torso(상체 비틀기) → 어깨 → 손 → 무기
     /// </summary>
     public sealed class AvatarView
     {
@@ -15,56 +18,84 @@ namespace Lumina.Runtime.Battle
         public readonly MemberState member;
         public readonly WeaponRig rig;
         private readonly Transform _model;
+        private readonly Transform _torso;
         private readonly Transform _shoulderR;
         private readonly Transform _shoulderL;
-        private readonly Vector3 _shoulderRBase;
-        private readonly Vector3 _shoulderLBase;
+        private readonly Transform _legR;
+        private readonly Transform _legL;
         private readonly Renderer[] _bodyRenderers;
+        private readonly Color[] _bodyColors;
         private readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
-        private readonly Color _bodyColor;
         private float _flash;
         private float _tagPop = 1f;
         private float _runPhase;
         private float _yaw;
-        private float _recoil;
+        private MPose _shown;
+        private MPose _blendFrom;
+        private float _blend;
+        private int _lastActionId = -1;
+        private ActionKind _lastKind = ActionKind.None;
+        private const float BlendTime = 0.06f;
 
         public AvatarView(Transform parent, MemberState m)
         {
             member = m;
             var el = Theme.Element(m.def.element);
-            _bodyColor = Color.Lerp(el, new Color(0.16f, 0.2f, 0.3f), 0.55f);
+            var bodyColor = Color.Lerp(el, new Color(0.16f, 0.2f, 0.3f), 0.55f);
+            var dark = Color.Lerp(bodyColor, Color.black, 0.25f);
+            var skin = new Color(0.96f, 0.84f, 0.74f);
             root = new GameObject("Avatar_" + m.def.id);
             root.transform.SetParent(parent, false);
             _model = new GameObject("Model").transform;
             _model.SetParent(root.transform, false);
 
-            var body = ProcMesh.Prim(PrimitiveType.Capsule, "Body", _model, new Vector3(0f, 0.95f, 0f), new Vector3(0.7f, 0.62f, 0.55f), Mats.Lit(_bodyColor, 0.3f));
-            var skirt = ProcMesh.Prim(PrimitiveType.Cylinder, "Coat", _model, new Vector3(0f, 0.55f, 0f), new Vector3(0.78f, 0.28f, 0.62f), Mats.Lit(Color.Lerp(_bodyColor, Color.black, 0.25f), 0.2f));
-            var head = ProcMesh.Prim(PrimitiveType.Sphere, "Head", _model, new Vector3(0f, 1.78f, 0f), Vector3.one * 0.46f, Mats.Lit(new Color(0.96f, 0.84f, 0.74f), 0.3f));
-            ProcMesh.Prim(PrimitiveType.Sphere, "Hair", _model, new Vector3(0f, 1.86f, -0.05f), new Vector3(0.5f, 0.42f, 0.5f), Mats.Lit(Color.Lerp(el, Color.white, 0.25f), 0.4f));
-            ProcMesh.Prim(PrimitiveType.Cube, "Sash", _model, new Vector3(0f, 1.12f, 0f), new Vector3(0.74f, 0.1f, 0.6f), Mats.Lit(el, 0.5f));
-            ProcMesh.Prim(PrimitiveType.Cube, "Visor", _model, new Vector3(0f, 1.8f, 0.2f), new Vector3(0.3f, 0.06f, 0.08f), Mats.Unlit(new Color(el.r, el.g, el.b, 1f)));
-            _bodyRenderers = new Renderer[] { body.GetComponent<Renderer>(), skirt.GetComponent<Renderer>(), head.GetComponent<Renderer>() };
+            // 하체(모델 직속): 코트 + 다리
+            var coat = ProcMesh.Prim(PrimitiveType.Cylinder, "Coat", _model, new Vector3(0f, 0.62f, 0f), new Vector3(0.72f, 0.16f, 0.58f), Mats.Lit(dark, 0.2f));
+            _legR = Leg(_model, "LegR", ToU(MotionLibrary.HipR), Mats.Lit(Color.Lerp(dark, Color.black, 0.3f), 0.2f));
+            _legL = Leg(_model, "LegL", ToU(MotionLibrary.HipL), Mats.Lit(Color.Lerp(dark, Color.black, 0.3f), 0.2f));
 
-            var armMat = Mats.Lit(Color.Lerp(_bodyColor, Color.white, 0.1f), 0.3f);
-            _shoulderRBase = new Vector3(0.36f, 1.38f, 0f);
-            _shoulderLBase = new Vector3(-0.36f, 1.38f, 0f);
-            _shoulderR = Arm(_model, "ShoulderR", _shoulderRBase, armMat, out var handR);
-            _shoulderL = Arm(_model, "ShoulderL", _shoulderLBase, armMat, out var handL);
+            // 상체(허리 피벗): 몸통·머리·어깨
+            _torso = new GameObject("Torso").transform;
+            _torso.SetParent(_model, false);
+            _torso.localPosition = ToU(MotionLibrary.TorsoPivot);
+            var body = ProcMesh.Prim(PrimitiveType.Capsule, "Body", _torso, new Vector3(0f, 0.18f, 0f), new Vector3(0.66f, 0.42f, 0.5f), Mats.Lit(bodyColor, 0.3f));
+            var head = ProcMesh.Prim(PrimitiveType.Sphere, "Head", _torso, new Vector3(0f, 0.88f, 0f), Vector3.one * 0.46f, Mats.Lit(skin, 0.3f));
+            ProcMesh.Prim(PrimitiveType.Sphere, "Hair", _torso, new Vector3(0f, 0.96f, -0.05f), new Vector3(0.5f, 0.42f, 0.5f), Mats.Lit(Color.Lerp(el, Color.white, 0.25f), 0.4f));
+            ProcMesh.Prim(PrimitiveType.Cube, "Sash", _torso, new Vector3(0f, 0.22f, 0f), new Vector3(0.7f, 0.1f, 0.56f), Mats.Lit(el, 0.5f));
+            ProcMesh.Prim(PrimitiveType.Cube, "Visor", _torso, new Vector3(0f, 0.9f, 0.2f), new Vector3(0.3f, 0.06f, 0.08f), Mats.Unlit(new Color(el.r, el.g, el.b, 1f)));
+            _bodyRenderers = new Renderer[] { body.GetComponent<Renderer>(), coat.GetComponent<Renderer>(), head.GetComponent<Renderer>() };
+            _bodyColors = new[] { bodyColor, dark, skin };
+
+            var armMat = Mats.Lit(Color.Lerp(bodyColor, Color.white, 0.1f), 0.3f);
+            _shoulderR = Arm(_torso, "ShoulderR", ToU(MotionLibrary.ShoulderR), armMat, out var handR);
+            _shoulderL = Arm(_torso, "ShoulderL", ToU(MotionLibrary.ShoulderL), armMat, out var handL);
             rig = WeaponRig.Build(m.def.weapon, handR, handL, el);
+            _shown = MotionLibrary.Rest(m.def.weapon);
         }
+
+        private static Vector3 ToU(V3 v) => new Vector3(v.x, v.y, v.z);
 
         private static Transform Arm(Transform parent, string name, Vector3 pos, Material mat, out Transform hand)
         {
             var sh = new GameObject(name).transform;
             sh.SetParent(parent, false);
             sh.localPosition = pos;
-            ProcMesh.Prim(PrimitiveType.Cube, "Arm", sh, new Vector3(0f, 0f, 0.28f), new Vector3(0.15f, 0.15f, 0.56f), mat);
+            ProcMesh.Prim(PrimitiveType.Cube, "Arm", sh, new Vector3(0f, 0f, MotionLibrary.ArmLength * 0.5f), new Vector3(0.15f, 0.15f, MotionLibrary.ArmLength - 0.02f), mat);
             hand = new GameObject("Hand").transform;
             hand.SetParent(sh, false);
-            hand.localPosition = new Vector3(0f, 0f, 0.58f);
+            hand.localPosition = new Vector3(0f, 0f, MotionLibrary.ArmLength);
             ProcMesh.Prim(PrimitiveType.Sphere, "Fist", hand, Vector3.zero, Vector3.one * 0.16f, mat);
             return sh;
+        }
+
+        private static Transform Leg(Transform parent, string name, Vector3 hip, Material mat)
+        {
+            var leg = new GameObject(name).transform;
+            leg.SetParent(parent, false);
+            leg.localPosition = hip;
+            ProcMesh.Prim(PrimitiveType.Cube, "Shin", leg, new Vector3(0f, -MotionLibrary.LegLength * 0.5f, 0f), new Vector3(0.17f, MotionLibrary.LegLength, 0.2f), mat);
+            ProcMesh.Prim(PrimitiveType.Cube, "Boot", leg, new Vector3(0f, -MotionLibrary.LegLength + 0.03f, 0.06f), new Vector3(0.19f, 0.08f, 0.3f), mat);
+            return leg;
         }
 
         public void SetVisible(bool v)
@@ -76,299 +107,106 @@ namespace Lumina.Runtime.Battle
 
         public void Flash() => _flash = 1f;
 
-        /// <summary>sim 상태로 포즈 갱신. alpha = 틱 사이 보간 비율.</summary>
+        /// <summary>sim 상태로 포즈 갱신. alpha = 틱 사이 보간 비율, dt = 0 이면 정지(히트스톱/일시정지).</summary>
         public void Pose(BattleSim sim, float alpha, float dt)
         {
             var body = sim.Body;
+            var w = member.def.weapon;
             Vector3 pos = Vector3.Lerp(V.W(body.prevPos), V.W(body.pos), alpha);
             root.transform.position = pos;
             float targetYaw = Mathf.Atan2(body.facing.x, body.facing.y) * Mathf.Rad2Deg;
-            _yaw = Mathf.MoveTowardsAngle(_yaw, targetYaw, 1080f * dt);
-            if (body.action == ActionKind.Normal || body.action == ActionKind.Skill || body.action == ActionKind.Ultimate || body.action == ActionKind.Approach) _yaw = targetYaw;
+            bool attacking = body.action == ActionKind.Normal || body.action == ActionKind.Skill || body.action == ActionKind.Ultimate || body.action == ActionKind.Approach;
+            _yaw = attacking ? targetYaw : Mathf.MoveTowardsAngle(_yaw, targetYaw, 1080f * dt);
             root.transform.rotation = Quaternion.Euler(0f, _yaw, 0f);
 
-            // 기본(대기/이동) 포즈
-            Vector3 rEuler = new Vector3(55f, 12f, 0f), lEuler = new Vector3(55f, -12f, 0f);
-            Vector3 rOff = Vector3.zero, lOff = Vector3.zero;
-            Vector3 modelPos = Vector3.zero;
-            Vector3 modelEuler = Vector3.zero;
-            bool trail = false;
             float charge = 0f, sinceRelease = -1f;
             bool casting = false;
-
-            bool moving = (body.pos - body.prevPos).SqrLength > 1e-6f && body.action == ActionKind.None;
-            if (moving)
-            {
-                _runPhase += dt * 11f;
-                modelPos.y = Mathf.Abs(Mathf.Sin(_runPhase)) * 0.08f;
-                modelEuler.x = 8f;
-                rEuler.x += Mathf.Sin(_runPhase) * 25f;
-                lEuler.x -= Mathf.Sin(_runPhase) * 25f;
-            }
-            HoldPose(ref rEuler, ref lEuler, ref rOff, ref lOff);
-
+            MPose target;
             switch (body.action)
             {
-                case ActionKind.Dodge:
-                {
-                    float u = Mathf.Clamp01(body.actionTime / Mathf.Max(0.01f, body.actionDuration));
-                    Vector3 local = root.transform.InverseTransformDirection(new Vector3(body.dodgeDir.x, 0f, body.dodgeDir.y));
-                    modelEuler.x = local.z * 25f * Mathf.Sin(u * Mathf.PI);
-                    modelEuler.z = -local.x * 25f * Mathf.Sin(u * Mathf.PI);
-                    modelPos.y = -0.15f * Mathf.Sin(u * Mathf.PI);
-                    break;
-                }
-                case ActionKind.Approach:
-                    _runPhase += dt * 17f;
-                    modelPos.y = Mathf.Abs(Mathf.Sin(_runPhase)) * 0.06f;
-                    modelEuler.x = 22f;
-                    rEuler = new Vector3(75f, 25f, 0f);
-                    lEuler = new Vector3(75f, -25f, 0f);
-                    break;
-                case ActionKind.HitStun:
-                    modelEuler.x = -14f;
-                    modelPos.x = Mathf.Sin(Time.time * 70f) * 0.04f;
-                    break;
                 case ActionKind.Normal:
                 case ActionKind.Skill:
                 case ActionKind.Ultimate:
                     if (body.current != null)
-                        AttackPose(body.current, body.actionTime, ref rEuler, ref lEuler, ref rOff, ref lOff, ref modelPos, ref modelEuler, ref trail, out charge, out sinceRelease, out casting);
+                    {
+                        target = MotionLibrary.Attack(w, body.action, body.current.step, body.current.def, body.actionTime, out charge, out sinceRelease);
+                        casting = true;
+                    }
+                    else target = MotionLibrary.Rest(w);
                     break;
+                case ActionKind.Approach:
+                    _runPhase += dt * 17f;
+                    target = MotionLibrary.Dash(w, _runPhase);
+                    break;
+                case ActionKind.Dodge:
+                {
+                    float u = Mathf.Clamp01(body.actionTime / Mathf.Max(0.01f, body.actionDuration));
+                    Vector3 local = root.transform.InverseTransformDirection(new Vector3(body.dodgeDir.x, 0f, body.dodgeDir.y));
+                    target = MotionLibrary.Dodge(w, u, local.x, local.z);
+                    break;
+                }
+                case ActionKind.HitStun:
+                    target = MotionLibrary.HitStun(w, Mathf.Clamp01(body.actionTime / Mathf.Max(0.01f, body.actionDuration)));
+                    break;
+                default:
+                {
+                    bool moving = (body.pos - body.prevPos).SqrLength > 1e-6f;
+                    if (moving)
+                    {
+                        _runPhase += dt * 11f;
+                        target = MotionLibrary.Run(w, _runPhase);
+                    }
+                    else target = MotionLibrary.Rest(w);
+                    break;
+                }
             }
 
-            _recoil = Mathf.MoveTowards(_recoil, 0f, dt * 6f);
-            _shoulderR.localRotation = Quaternion.Euler(rEuler);
-            _shoulderL.localRotation = Quaternion.Euler(lEuler);
-            _shoulderR.localPosition = _shoulderRBase + rOff;
-            _shoulderL.localPosition = _shoulderLBase + lOff;
-            _model.localPosition = modelPos;
-            _model.localRotation = Quaternion.Euler(modelEuler);
+            // 행동이 바뀌는 순간(시작·캔슬·교대) 짧게 블렌딩해 튀지 않게 한다(공격 중 포즈 자체는 그대로 재생).
+            int actionId = body.current != null ? body.current.id : -1;
+            if (actionId != _lastActionId || body.action != _lastKind)
+            {
+                _blendFrom = _shown;
+                _blend = BlendTime;
+                _lastActionId = actionId;
+                _lastKind = body.action;
+            }
+            if (_blend > 0f)
+            {
+                _blend = Mathf.Max(0f, _blend - dt);
+                target = MPose.Lerp(_blendFrom, target, 1f - _blend / BlendTime);
+            }
+            _shown = target;
+            Apply(target);
+
             _tagPop = Mathf.MoveTowards(_tagPop, 1f, dt * 4f);
             _model.localScale = Vector3.one * _tagPop;
-            WeaponRig.SetTrails(rig, trail);
+            WeaponRig.SetTrails(rig, target.trail > 0.5f);
             rig.Animate(charge, sinceRelease, casting, dt);
 
             _flash = Mathf.MoveTowards(_flash, 0f, dt * 8f);
-            foreach (var r in _bodyRenderers)
+            for (int i = 0; i < _bodyRenderers.Length; i++)
             {
+                var r = _bodyRenderers[i];
                 r.GetPropertyBlock(_block);
-                Mats.SetBlockColor(_block, Color.Lerp(_bodyColor, new Color(1f, 0.35f, 0.3f), _flash));
-                if (r.name == "Head") Mats.SetBlockColor(_block, Color.Lerp(new Color(0.96f, 0.84f, 0.74f), new Color(1f, 0.4f, 0.35f), _flash));
+                Mats.SetBlockColor(_block, Color.Lerp(_bodyColors[i], new Color(1f, 0.35f, 0.3f), _flash));
                 r.SetPropertyBlock(_block);
             }
         }
 
-        /// <summary>무기를 쥐는 기본 자세(원거리/마법은 앞으로 겨눔).</summary>
-        private void HoldPose(ref Vector3 r, ref Vector3 l, ref Vector3 ro, ref Vector3 lo)
+        private void Apply(MPose p)
         {
-            switch (member.def.weapon)
-            {
-                case WeaponType.Bow:
-                    l = new Vector3(5f, 0f, 0f);
-                    r = new Vector3(5f, -20f, 0f);
-                    ro = new Vector3(0f, 0f, -0.05f);
-                    break;
-                case WeaponType.Crossbow:
-                case WeaponType.Gun:
-                    r = new Vector3(15f, -5f, 0f);
-                    l = new Vector3(25f, 25f, 0f);
-                    break;
-                case WeaponType.Launcher:
-                    r = new Vector3(0f, 0f, 0f);
-                    ro = new Vector3(-0.05f, 0.12f, -0.25f);
-                    l = new Vector3(20f, 25f, 0f);
-                    break;
-                case WeaponType.Staff:
-                    r = new Vector3(-30f, 10f, 0f);
-                    break;
-                case WeaponType.Scroll:
-                    r = new Vector3(20f, -10f, 0f);
-                    l = new Vector3(30f, 20f, 0f);
-                    break;
-                case WeaponType.Grimoire:
-                    l = new Vector3(20f, 15f, 0f);
-                    break;
-                case WeaponType.MagicRing:
-                    r = new Vector3(15f, 0f, 0f);
-                    break;
-                case WeaponType.Spear:
-                    r = new Vector3(20f, 5f, 0f);
-                    break;
-            }
-        }
-
-        private static float EaseInOut(float u) => u < 0.5f ? 4f * u * u * u : 1f - Mathf.Pow(-2f * u + 2f, 3f) / 2f;
-        private static float EaseOut(float u) => 1f - (1f - u) * (1f - u);
-
-        /// <summary>
-        /// 공격 포즈. 각 명중 시각(startup + i×interval)을 '스윙 중심'으로 두고 SwingLead×2 길이의 스트라이크 구간에서
-        /// 무기가 가장 빠르게 정면을 지나가도록 한다.
-        /// </summary>
-        private void AttackPose(ActionInstance act, float t, ref Vector3 r, ref Vector3 l, ref Vector3 ro, ref Vector3 lo,
-            ref Vector3 mPos, ref Vector3 mEuler, ref bool trail, out float charge, out float sinceRelease, out bool casting)
-        {
-            var def = act.def;
-            float S = def.startup;
-            int hits = def.SafeHits;
-            float lead = SfxTiming.SwingLead(act.weapon);
-            if (lead <= 0f) lead = 0.06f;
-            float strike = Mathf.Min(lead * 2f, hits > 1 ? def.hitInterval * 0.95f : 99f);
-            strike = Mathf.Max(strike, 0.05f);
-            charge = Mathf.Clamp01(t / Mathf.Max(0.01f, S));
-            sinceRelease = t - S;
-            casting = true;
-
-            // 현재 기준 명중 인덱스(가장 가까운 다음/직전 명중)
-            int i = Mathf.Clamp(Mathf.RoundToInt((t - S) / Mathf.Max(0.0001f, def.hitInterval)), 0, hits - 1);
-            if (hits == 1) i = 0;
-            float hitT = S + i * def.hitInterval;
-            float s0 = hitT - strike * 0.5f;
-            float u = Mathf.Clamp01((t - s0) / strike);          // 0→1, 0.5 = 명중 순간
-            bool beforeFirst = t < S - strike * 0.5f;
-            float windup = beforeFirst ? EaseOut(Mathf.Clamp01(t / Mathf.Max(0.01f, S - strike * 0.5f))) : 1f;
-            float after = t - (def.LastHitTime + strike * 0.5f);   // 마지막 타 이후
-            float settle = after > 0f ? Mathf.Clamp01(after / Mathf.Max(0.05f, def.recovery * 0.8f)) : 0f;
-            bool inStrike = !beforeFirst && after <= 0.02f;
-            bool alt = (act.step + i) % 2 == 1;
-
-            switch (def.swing)
-            {
-                case SwingStyle.HorizontalLR:
-                case SwingStyle.HorizontalRL:
-                {
-                    float dir = def.swing == SwingStyle.HorizontalLR ? 1f : -1f;
-                    if (alt && act.weapon == WeaponType.DualBlades) dir = -dir;
-                    float from = -105f * dir, to = 95f * dir;
-                    float yaw = beforeFirst ? Mathf.Lerp(12f, from, windup) : Mathf.Lerp(from, to, EaseInOut(u));
-                    var arm = new Vector3(8f, yaw, 0f);
-                    arm = Vector3.Lerp(arm, new Vector3(55f, 12f, 0f), settle);
-                    if (act.weapon == WeaponType.DualBlades && alt) l = new Vector3(arm.x, -arm.y, 0f);
-                    else r = arm;
-                    mEuler.y = beforeFirst ? -15f * dir * windup : Mathf.Lerp(-15f * dir, 20f * dir, EaseInOut(u)) * (1f - settle);
-                    mEuler.x = inStrike ? 8f : 0f;
-                    trail = inStrike;
-                    break;
-                }
-                case SwingStyle.Overhead:
-                case SwingStyle.Slam:
-                {
-                    float pitch = beforeFirst ? Mathf.Lerp(55f, -150f, windup) : Mathf.Lerp(-150f, 70f, EaseInOut(u));
-                    r = Vector3.Lerp(new Vector3(pitch, 0f, 0f), new Vector3(55f, 12f, 0f), settle);
-                    l = act.weapon == WeaponType.Greatsword || act.weapon == WeaponType.Axe ? new Vector3(r.x, -8f, 0f) : l;
-                    mEuler.x = beforeFirst ? -10f * windup : Mathf.Lerp(-10f, 18f, EaseInOut(u)) * (1f - settle);
-                    if (def.swing == SwingStyle.Slam)
-                    {
-                        float jump = beforeFirst ? Mathf.Sin(windup * Mathf.PI * 0.85f) * 0.9f : Mathf.Max(0f, 0.9f * (1f - EaseInOut(u) * 2f));
-                        mPos.y += jump;
-                    }
-                    trail = inStrike;
-                    break;
-                }
-                case SwingStyle.Thrust:
-                {
-                    float ext = beforeFirst ? -0.25f * windup : Mathf.Lerp(-0.25f, 0.55f, EaseInOut(u));
-                    ext *= 1f - settle;
-                    var arm = new Vector3(5f, 0f, 0f);
-                    if (act.weapon == WeaponType.Dagger && alt) l = arm;
-                    else r = arm;
-                    if (act.weapon == WeaponType.Dagger && alt) lo = new Vector3(0.1f, 0f, ext);
-                    else ro = new Vector3(-0.1f, 0f, ext);
-                    if (act.weapon == WeaponType.Spear) l = new Vector3(15f, 25f, 0f);
-                    mEuler.x = inStrike ? 12f : 0f;
-                    trail = inStrike;
-                    break;
-                }
-                case SwingStyle.Punch:
-                {
-                    float ext = beforeFirst ? -0.2f * windup : Mathf.Lerp(-0.2f, 0.45f, EaseInOut(u));
-                    ext *= 1f - settle;
-                    if (alt)
-                    {
-                        l = new Vector3(5f, 5f, 0f);
-                        lo = new Vector3(0.12f, 0f, ext);
-                    }
-                    else
-                    {
-                        r = new Vector3(5f, -5f, 0f);
-                        ro = new Vector3(-0.12f, 0f, ext);
-                    }
-                    mEuler.y = (alt ? 18f : -18f) * (inStrike ? 1f : windup);
-                    mEuler.x = inStrike ? 10f : 0f;
-                    trail = inStrike;
-                    break;
-                }
-                case SwingStyle.Uppercut:
-                {
-                    float pitch = beforeFirst ? Mathf.Lerp(55f, 85f, windup) : Mathf.Lerp(85f, -120f, EaseInOut(u));
-                    r = Vector3.Lerp(new Vector3(pitch, -5f, 0f), new Vector3(55f, 12f, 0f), settle);
-                    mPos.y += inStrike ? Mathf.Sin(u * Mathf.PI) * 0.25f : 0f;
-                    mEuler.x = beforeFirst ? 12f * windup : -10f * (1f - settle);
-                    trail = inStrike;
-                    break;
-                }
-                case SwingStyle.Spin:
-                {
-                    // 전체 다단 구간 동안 회전(각 명중마다 정면 통과)
-                    float total = def.LastHitTime + strike * 0.5f - (S - strike * 0.5f);
-                    float su = Mathf.Clamp01((t - (S - strike * 0.5f)) / Mathf.Max(0.05f, total));
-                    float turns = hits > 1 ? hits * 0.5f : 1f;
-                    mEuler.y = beforeFirst ? -30f * windup : su * 360f * turns;
-                    r = new Vector3(15f, 75f, 0f);
-                    if (act.weapon == WeaponType.DualBlades) l = new Vector3(15f, -75f, 0f);
-                    trail = inStrike;
-                    break;
-                }
-                case SwingStyle.Draw:
-                {
-                    l = new Vector3(0f, 0f, 0f);
-                    float pull = beforeFirst || t < S ? charge : 0f;
-                    r = new Vector3(0f, -18f, 0f);
-                    ro = new Vector3(-0.1f, 0f, -0.45f * pull);
-                    if (t >= S && t < S + 0.12f) ro.z = 0.05f;
-                    break;
-                }
-                case SwingStyle.Fire:
-                {
-                    if (t >= hitT - 0.001f && t < hitT + 0.02f) _recoil = act.weapon == WeaponType.Launcher ? 1f : act.weapon == WeaponType.Gun ? 0.5f : 0.7f;
-                    float kick = _recoil;
-                    r = new Vector3(5f - kick * 28f, -3f, 0f);
-                    ro += new Vector3(0f, 0f, -kick * 0.18f);
-                    mEuler.x = -kick * 6f;
-                    break;
-                }
-                case SwingStyle.Cast:
-                {
-                    float raise = beforeFirst || t < S ? charge : 0f;
-                    r = new Vector3(Mathf.Lerp(-30f, -70f, raise), 8f, 0f);
-                    if (t >= S && t < S + 0.15f)
-                    {
-                        float k = (t - S) / 0.15f;
-                        r = new Vector3(Mathf.Lerp(-70f, 10f, EaseOut(k)), 5f, 0f);
-                        ro = new Vector3(0f, 0f, 0.25f * (1f - k));
-                    }
-                    if (act.weapon == WeaponType.Grimoire) l = new Vector3(Mathf.Lerp(20f, -10f, raise), 15f, 0f);
-                    mEuler.x = raise * -6f;
-                    break;
-                }
-                case SwingStyle.Unfurl:
-                {
-                    r = new Vector3(5f, -12f, 0f);
-                    l = new Vector3(5f, 12f, 0f);
-                    ro = new Vector3(-0.1f, 0.05f, 0.1f);
-                    if (t >= S && t < S + 0.12f) mEuler.x = 10f;
-                    break;
-                }
-                case SwingStyle.RingSpin:
-                {
-                    r = new Vector3(Mathf.Lerp(15f, -10f, charge), 0f, 0f);
-                    if (t >= S && t < S + 0.12f) ro = new Vector3(0f, 0f, 0.25f);
-                    break;
-                }
-            }
-            if (act.kind == ActionKind.Ultimate && beforeFirst) mPos.y += Mathf.Sin(windup * Mathf.PI) * 0.25f;
+            _model.localPosition = ToU(p.modelPos);
+            _model.localRotation = Quaternion.Euler(ToU(p.modelRot));
+            _torso.localRotation = Quaternion.Euler(ToU(p.torso));
+            _shoulderR.localPosition = ToU(MotionLibrary.ShoulderR + p.reachR);
+            _shoulderL.localPosition = ToU(MotionLibrary.ShoulderL + p.reachL);
+            _shoulderR.localRotation = Quaternion.Euler(ToU(p.armR));
+            _shoulderL.localRotation = Quaternion.Euler(ToU(p.armL));
+            _legR.localRotation = Quaternion.Euler(p.legR, 0f, 0f);
+            _legL.localRotation = Quaternion.Euler(p.legL, 0f, 0f);
         }
     }
+
 
     /// <summary>적 임시 모형 + 예고/공격/피격/브레이크/사망 연출.</summary>
     public sealed class EnemyView

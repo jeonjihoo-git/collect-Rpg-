@@ -14,10 +14,18 @@ namespace Lumina.Runtime.Battle
         public LineRenderer line;
         public bool billboard;
         public float spinDeg;
+        /// <summary>지연 후 등장(휘두름 큐 → 접촉 직전에 궤적 표시).</summary>
+        public float delay;
         private float _t;
 
         private void Update()
         {
+            if (delay > 0f)
+            {
+                delay -= Time.deltaTime;
+                transform.localScale = Vector3.zero;
+                return;
+            }
             _t += Time.deltaTime;
             float u = Mathf.Clamp01(_t / life);
             float e = 1f - (1f - u) * (1f - u);
@@ -192,6 +200,50 @@ namespace Lumina.Runtime.Battle
             float roll = swing == SwingStyle.Overhead || swing == SwingStyle.Slam ? 80f : swing == SwingStyle.Uppercut ? -80f : swing == SwingStyle.HorizontalRL ? 180f : 0f;
             var rot = Quaternion.LookRotation(forward.sqrMagnitude > 0.001f ? forward : Vector3.forward) * Quaternion.Euler(0f, 0f, roll);
             Spawn("Slash", ProcMesh.Crescent(150f), pos + Vector3.up * 1.0f - forward * 0.6f, rot, c, 0.16f, Vector3.one * size * 0.8f, Vector3.one * size * 1.15f, false);
+        }
+
+        /// <summary>
+        /// 휘두름 궤적(명중 여부와 관계없이). Swing 큐에서 호출되어 접촉 직전에 나타난다.
+        /// 가로베기 = 수평 호, 내려/올려치기 = 수직 호, 찌르기 = 직선 섬광, 회전 = 원.
+        /// </summary>
+        public void SwingArc(Vector3 pos, Quaternion facing, WeaponType w, SwingStyle style, SfxTier tier, float delay)
+        {
+            float reach = Lumina.Core.Presentation.MotionLibrary.Profile(w).tip.z + 0.9f;
+            float a = tier == SfxTier.Finisher || tier == SfxTier.Skill || tier == SfxTier.Ultimate ? 0.8f : 0.55f;
+            var c = new Color(1f, 1f, 1f, a);
+            Vector3 fwd = facing * Vector3.forward;
+            Mesh mesh;
+            Quaternion rot = facing;
+            Vector3 at = pos + Vector3.up * 1.15f;
+            Vector3 scale = Vector3.one * reach;
+            switch (style)
+            {
+                case SwingStyle.HorizontalLR:
+                case SwingStyle.HorizontalRL:
+                    mesh = ProcMesh.Crescent(160f);
+                    rot = facing * Quaternion.Euler(0f, 0f, style == SwingStyle.HorizontalRL ? 180f : 0f);
+                    break;
+                case SwingStyle.Overhead:
+                case SwingStyle.Slam:
+                case SwingStyle.Uppercut:
+                    mesh = ProcMesh.Crescent(140f);
+                    rot = facing * Quaternion.Euler(0f, 0f, style == SwingStyle.Uppercut ? -90f : 90f);
+                    break;
+                case SwingStyle.Thrust:
+                    mesh = ProcMesh.Rect();
+                    scale = new Vector3(0.22f, 1f, reach * 1.25f);
+                    at = pos + Vector3.up * 1.2f + fwd * 0.2f;
+                    break;
+                case SwingStyle.Spin:
+                    mesh = ProcMesh.Ring(0.84f);
+                    rot = Quaternion.identity;
+                    break;
+                default:
+                    return;
+            }
+            var fx = Spawn("SwingArc", mesh, at, rot, c, 0.14f, scale * 0.9f, scale * 1.06f, false);
+            fx.delay = delay;
+            if (delay > 0f) fx.transform.localScale = Vector3.zero;
         }
 
         /// <summary>무기 계열별 명중 이펙트. 피해 이벤트와 같은 프레임에 호출된다.</summary>

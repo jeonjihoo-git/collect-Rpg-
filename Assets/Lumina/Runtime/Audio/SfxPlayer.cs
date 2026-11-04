@@ -8,7 +8,7 @@ namespace Lumina.Runtime.Audio
     /// <summary>
     /// SfxRequest → AudioClip(절차 합성 캐시) → AudioSource 풀 재생.
     /// 같은 키는 2개 변형을 번갈아 사용하고 ±3% 피치 흔들림으로 기계적 반복감을 줄인다.
-    /// 정식 음원이 들어오면 Render 대신 에셋 매핑을 반환하도록 이 클래스만 교체하면 된다.
+    /// Resources/LuminaSfx/ 에 같은 이름의 실제 음원(wav/ogg)을 넣으면 합성음 대신 그 파일을 재생한다(SfxRequest.AssetPaths).
     /// </summary>
     public sealed class SfxPlayer : MonoBehaviour
     {
@@ -18,6 +18,7 @@ namespace Lumina.Runtime.Audio
         public float masterVolume = 0.9f;
 
         private readonly Dictionary<string, AudioClip> _clips = new Dictionary<string, AudioClip>();
+        private readonly Dictionary<string, AudioClip> _assets = new Dictionary<string, AudioClip>();
         private readonly Dictionary<string, int> _rr = new Dictionary<string, int>();
         private AudioSource[] _voices;
         private float[] _startedAt;
@@ -42,7 +43,7 @@ namespace Lumina.Runtime.Audio
             string key = r.Key;
             _rr.TryGetValue(key, out int v);
             _rr[key] = (v + 1) % Variants;
-            var clip = Clip(r, v);
+            var clip = Asset(r) ?? Clip(r, v);
             if (clip == null) return;
             var src = PickVoice();
             src.clip = clip;
@@ -83,6 +84,31 @@ namespace Lumina.Runtime.Audio
             _startedAt[oldest] = Time.unscaledTime;
             _voices[oldest].Stop();
             return _voices[oldest];
+        }
+
+        /// <summary>교체 음원 조회(없으면 null 을 캐시해 매번 찾지 않음).</summary>
+        private AudioClip Asset(SfxRequest r)
+        {
+            foreach (var path in r.AssetPaths)
+            {
+                if (!_assets.TryGetValue(path, out var c))
+                {
+                    c = Resources.Load<AudioClip>("LuminaSfx/" + path);
+                    _assets[path] = c;
+                }
+                if (c != null) return c;
+            }
+            return null;
+        }
+
+        public int ReplacedClipCount
+        {
+            get
+            {
+                int n = 0;
+                foreach (var c in _assets.Values) if (c != null) n++;
+                return n;
+            }
         }
 
         private AudioClip Clip(SfxRequest r, int variant)

@@ -208,6 +208,10 @@ namespace Lumina.Runtime.Battle
                             _hud.Float(Avatar.root.transform.position + Vector3.up * 2.8f, _sim.Party[ev.member].def.ultimate.name, Theme.Gold, 40, 1f);
                         }
                         break;
+                    case CombatEventType.Swing:
+                        // 휘두름 궤적: 큐(명중 − 선행시간)에서 선행시간의 절반 뒤 등장 → 접촉 순간 가장 선명
+                        _vfx.SwingArc(Avatar.root.transform.position, Avatar.root.transform.rotation, ev.weapon, ev.swing, ev.tier, ev.duration * 0.5f);
+                        break;
                     case CombatEventType.Dodge:
                         _vfx.Afterimage(Avatar.root.transform.position, Avatar.root.transform.rotation, new Color(0.6f, 0.9f, 1f, 0.45f));
                         break;

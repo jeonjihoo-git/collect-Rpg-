@@ -27,7 +27,8 @@ Assets/Lumina/
     Data/          Enums, Defs(CharacterDef·WeaponTypeDef·AttackStepDef·SkillDef·EnemyDef·StageDef·ElementReactionDef·BalanceDef), GameDatabase(로드·검증)
     Combat/        BattleSim(전투 규칙·이벤트), DamageCalc(GDD 공식), Geometry, AutoBattleController, InputMerger
     Progress/      SaveData(Account·Inventory·OwnedCharacter·PartyPresets·ClearRecord·BattleReceipt·PendingBattle), SaveStore(원자적 파일 저장), GameSession
-    Audio/         SfxTiming(휘두름 선행), Dsp, SfxSynth(무기별 레시피), SfxRouter(이벤트→소리), SfxAnalysis(WAV·특징량)
+    Audio/         SfxTiming(휘두름 선행), Dsp(잔향 포함), SfxSynth(무기별 레시피), SfxRouter(이벤트→소리·교체 음원 슬롯), SfxAnalysis(WAV·특징량)
+    Presentation/  MotionLibrary(16무기 공격 키프레임·FK) — Unity 아바타·테스트·미리보기 영상 공용
   Runtime/         Unity 전용(Assembly-CSharp)
     GameApp.cs     앱 루트·화면 흐름·부트스트랩
     Common/        Theme·Mats(URP/Built-in 자동)·Fonts(한글 OS 폰트)
@@ -36,7 +37,7 @@ Assets/Lumina/
     Audio/         SfxPlayer(합성 캐시·보이스 풀)
   Editor/          LuminaProjectSetup(Boot 씬·빌드 목록·가로 고정·URP 자동 설정·WAV 내보내기)
   Resources/LuminaData/  balance · reactions · weapons · characters_test · roster_canon · enemies · stages (.json)
-  Tests/EditMode/  NUnit 82개 — Unity Test Runner 와 dotnet 양쪽에서 동일 파일 실행
+  Tests/EditMode/  NUnit 88개 — Unity Test Runner 와 dotnet 양쪽에서 동일 파일 실행
 tools/
   Lumina.Core.Tests/   dotnet test 진입점
   Lumina.Sim/          헤드리스 흐름(flow) · 효과음 쇼케이스(sfx) · 처치시간(ttk)

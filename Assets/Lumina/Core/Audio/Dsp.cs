@@ -348,15 +348,67 @@ namespace Lumina.Core.Audio
             return buf;
         }
 
-        /// <summary>마무리: DC 제거, 소프트 클립, 목표 피크 정규화, 끝 페이드, 꼬리 무음 제거.</summary>
-        public static float[] Finish(float[] buf, float peak)
+        /// <summary>
+        /// 모노 Freeverb(콤 8 + 올패스 4). 공간감(잔향)이 없으면 합성음이 '전자음'처럼 들려 실내 전장 크기의 잔향을 더한다.
+        /// wet 0~1, room 0~1(잔향 길이), damp 0~1(고역 흡수).
+        /// </summary>
+        public static float[] Reverb(float[] dry, float wet, float room, float damp, float preDelay = 0.012f)
+        {
+            if (wet <= 0f) return dry;
+            int[] combs = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };
+            int[] alls = { 556, 441, 341, 225 };
+            float feedback = 0.7f + 0.28f * Math.Clamp(room, 0f, 1f);
+            float d = Math.Clamp(damp, 0f, 1f) * 0.4f;
+            int pre = N(preDelay);
+            int tail = N(0.25f + 1.4f * room);
+            var outBuf = new float[dry.Length + tail + pre];
+            var cb = new float[combs.Length][];
+            var ci = new int[combs.Length];
+            var cs = new float[combs.Length];
+            for (int i = 0; i < combs.Length; i++) cb[i] = new float[combs[i]];
+            var ab = new float[alls.Length][];
+            var ai = new int[alls.Length];
+            for (int i = 0; i < alls.Length; i++) ab[i] = new float[alls[i]];
+            for (int n = 0; n < outBuf.Length; n++)
+            {
+                int src = n - pre;
+                float x = src >= 0 && src < dry.Length ? dry[src] * 0.015f : 0f;
+                float acc = 0f;
+                for (int c = 0; c < combs.Length; c++)
+                {
+                    float y = cb[c][ci[c]];
+                    cs[c] = y * (1f - d) + cs[c] * d;
+                    cb[c][ci[c]] = x + cs[c] * feedback;
+                    ci[c] = (ci[c] + 1) % combs[c];
+                    acc += y;
+                }
+                for (int a = 0; a < alls.Length; a++)
+                {
+                    float bufout = ab[a][ai[a]];
+                    float o = -acc + bufout;
+                    ab[a][ai[a]] = acc + bufout * 0.5f;
+                    ai[a] = (ai[a] + 1) % alls[a];
+                    acc = o;
+                }
+                float dryS = n < dry.Length ? dry[n] : 0f;
+                outBuf[n] = dryS + acc * wet * 3f;
+            }
+            return outBuf;
+        }
+
+        /// <summary>마무리: DC 제거, 소프트 새츄레이션(drive: 타격 밀도·펀치), 목표 피크 정규화, 끝 페이드, 꼬리 무음 제거.</summary>
+        public static float[] Finish(float[] buf, float peak, float drive = 1.1f)
         {
             var dc = Biquad.HighPass(28f, 0.7f);
+            float pre = 0f;
+            for (int i = 0; i < buf.Length; i++) pre = MathF.Max(pre, MathF.Abs(buf[i]));
+            float norm = pre > 1e-6f ? 1f / pre : 1f;
+            float tn = MathF.Tanh(drive);
             float max = 0f;
             for (int i = 0; i < buf.Length; i++)
             {
-                float x = dc.Process(buf[i]);
-                x = MathF.Tanh(x * 1.1f);
+                float x = dc.Process(buf[i] * norm);
+                x = MathF.Tanh(x * drive) / tn;
                 buf[i] = x;
                 max = MathF.Max(max, MathF.Abs(x));
             }

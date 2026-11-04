@@ -275,9 +275,9 @@ namespace Lumina.Runtime.Battle
         private static TrailRenderer Trail(Transform at, Color c, float width)
         {
             var tr = at.gameObject.AddComponent<TrailRenderer>();
-            tr.time = 0.12f;
-            tr.minVertexDistance = 0.03f;
-            tr.startWidth = width;
+            tr.time = 0.16f;
+            tr.minVertexDistance = 0.02f;
+            tr.startWidth = width * 1.25f;
             tr.endWidth = 0f;
             tr.material = Mats.UnlitInstance(Color.white);
             tr.startColor = new Color(c.r, c.g, c.b, 0.85f);

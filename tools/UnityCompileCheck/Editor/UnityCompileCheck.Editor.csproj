@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <CheckFlavor>Editor</CheckFlavor>
+    <DefineConstants>UNITY_EDITOR;ENABLE_LEGACY_INPUT_MANAGER;UNITY_2021_3_OR_NEWER</DefineConstants>
+  </PropertyGroup>
+  <Import Project="../Common.props" />
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)Assets/Lumina/Editor/**/*.cs" />
+    <Reference Include="UnityEditor">
+      <HintPath>$(PkgUnity3D_SDK)/lib/UnityEditor.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

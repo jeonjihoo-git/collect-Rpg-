@@ -1,0 +1,10 @@
+<Project>
+  <!-- Unity 6 기준 C# 9 / .NET Standard 2.1 호환 문법으로 제한 -->
+  <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <RepoRoot>$(MSBuildThisFileDirectory)..\</RepoRoot>
+  </PropertyGroup>
+</Project>

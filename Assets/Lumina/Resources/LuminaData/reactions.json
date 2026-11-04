@@ -1,0 +1,18 @@
+{
+  "note": "13개 반응 쌍과 배율은 04_MACHINE_RULES.json / GDD 04-2의 초기 기준 계수(Prototype). 순서 무관. 결빙 방벽은 피해 대신 보호막. 지속·중첩·내성은 미확정.",
+  "reactions": [
+    { "a": "Fire",  "b": "Grass",     "name": "연소",        "multiplier": 1.7, "effect": "Damage", "status": "Prototype", "note": "원안" },
+    { "a": "Water", "b": "Lightning", "name": "감전 확산",   "multiplier": 1.6, "effect": "Damage", "status": "Prototype", "note": "원안" },
+    { "a": "Water", "b": "Ice",       "name": "빙결",        "multiplier": 1.5, "effect": "Damage", "status": "Prototype", "note": "원안" },
+    { "a": "Wind",  "b": "Fire",      "name": "화염폭풍",    "multiplier": 1.9, "effect": "Damage", "status": "Prototype", "note": "원안" },
+    { "a": "Wind",  "b": "Lightning", "name": "뇌폭풍",      "multiplier": 1.8, "effect": "Damage", "status": "Prototype", "note": "원안" },
+    { "a": "Rock",  "b": "Fire",      "name": "용암",        "multiplier": 1.8, "effect": "Damage", "status": "Prototype", "note": "원안" },
+    { "a": "Rock",  "b": "Ice",       "name": "결빙 방벽",   "multiplier": 1.4, "effect": "Shield", "status": "Prototype", "note": "피해 대신 보호막" },
+    { "a": "Water", "b": "Grass",     "name": "급성장",      "multiplier": 1.3, "effect": "Damage", "status": "Prototype", "note": "추가 6종" },
+    { "a": "Light", "b": "Dark",      "name": "상극",        "multiplier": 2.0, "effect": "Damage", "status": "Prototype", "note": "추가 6종" },
+    { "a": "Light", "b": "Fire",      "name": "정화의 불꽃", "multiplier": 1.5, "effect": "Damage", "status": "Prototype", "note": "추가 6종" },
+    { "a": "Dark",  "b": "Ice",       "name": "흑빙",        "multiplier": 1.6, "effect": "Damage", "status": "Prototype", "note": "추가 6종" },
+    { "a": "Rock",  "b": "Lightning", "name": "대지진동",    "multiplier": 1.7, "effect": "Damage", "status": "Prototype", "note": "추가 6종" },
+    { "a": "Grass", "b": "Lightning", "name": "감전목",      "multiplier": 1.5, "effect": "Damage", "status": "Prototype", "note": "추가 6종" }
+  ]
+}

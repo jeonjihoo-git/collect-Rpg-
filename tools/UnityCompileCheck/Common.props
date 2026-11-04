@@ -1,0 +1,21 @@
+<Project>
+  <!-- Unity 런타임/에디터 스크립트의 컴파일 검사(실행 아님).
+       UnityEngine 모듈 참조 어셈블리(NuGet: UnityEngine.Modules 2021.3.33, Unity3D.SDK 의 UnityEditor.dll)와
+       uGUI 시그니처 스텁으로 C# 9 컴파일 오류·API 오타를 잡는다. 최종 판정은 Unity 6 에디터 컴파일. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>$(NoWarn);CS0649;CS0414;NU1701</NoWarn>
+    <AssemblyName>Lumina.UnityCompileCheck.$(CheckFlavor)</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)Assets/Lumina/Core/**/*.cs" />
+    <Compile Include="$(RepoRoot)Assets/Lumina/Runtime/**/*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Stubs/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" />
+    <PackageReference Include="Unity3D.SDK" Version="2021.1.14.1" ExcludeAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+</Project>

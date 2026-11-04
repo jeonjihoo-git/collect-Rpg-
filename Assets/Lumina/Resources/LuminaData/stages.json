@@ -1,0 +1,60 @@
+{
+  "mapName": "검증 맵 · 원형 전장",
+  "mapNote": "수직 슬라이스 1개 맵. 정식 스토리(1~90장) 데이터 아님(C-07).",
+  "stages": [
+    {
+      "id": "vs_1",
+      "displayName": "검증 1 · 기본 전투",
+      "description": "근접 환영 2웨이브. 이동·일반공격·회피·태그 확인용.",
+      "order": 1,
+      "unlockAfter": null,
+      "staminaCost": 10,
+      "difficulty": "Normal",
+      "recommendedCp": 0,
+      "waves": [
+        { "spawns": [ { "enemy": "test_melee", "x": -3, "y": 6 }, { "enemy": "test_melee", "x": 3, "y": 6 } ] },
+        { "spawns": [ { "enemy": "test_melee", "x": -5, "y": 5 }, { "enemy": "test_melee", "x": 0, "y": 8 }, { "enemy": "test_melee", "x": 5, "y": 5 } ] }
+      ],
+      "firstClearReward": { "crystals": 50, "gold": 2000, "expBooks": 3, "accountExp": 150 },
+      "repeatReward": { "crystals": 10, "gold": 1000, "expBooks": 1, "accountExp": 150 },
+      "status": "Temp",
+      "note": "계정 EXP +150·반복 결정 10은 웹 시제품 값(Prototype), 나머지 보상·행동력 비용은 Temp."
+    },
+    {
+      "id": "vs_2",
+      "displayName": "검증 2 · 원거리 혼합",
+      "description": "근접+원거리 환영. 공격 예고 회피·속성 반응 확인용.",
+      "order": 2,
+      "unlockAfter": "vs_1",
+      "staminaCost": 10,
+      "difficulty": "Normal",
+      "recommendedCp": 0,
+      "waves": [
+        { "spawns": [ { "enemy": "test_melee", "x": -3, "y": 6 }, { "enemy": "test_melee", "x": 3, "y": 6 }, { "enemy": "test_ranged", "x": 0, "y": 10 } ] },
+        { "spawns": [ { "enemy": "test_ranged", "x": -6, "y": 8 }, { "enemy": "test_ranged", "x": 6, "y": 8 }, { "enemy": "test_melee", "x": 0, "y": 6 } ] }
+      ],
+      "firstClearReward": { "crystals": 60, "gold": 2500, "expBooks": 4, "accountExp": 150 },
+      "repeatReward": { "crystals": 10, "gold": 1200, "expBooks": 1, "accountExp": 150 },
+      "status": "Temp",
+      "note": "계정 EXP +150·반복 결정 10은 웹 시제품 값(Prototype), 나머지는 Temp."
+    },
+    {
+      "id": "vs_3",
+      "displayName": "검증 3 · 보스",
+      "description": "침식의 환영(하드 브레이크 150). 브레이크·궁극기 확인용.",
+      "order": 3,
+      "unlockAfter": "vs_2",
+      "staminaCost": 15,
+      "difficulty": "Hard",
+      "recommendedCp": 0,
+      "waves": [
+        { "spawns": [ { "enemy": "test_melee", "x": -4, "y": 6 }, { "enemy": "test_melee", "x": 4, "y": 6 } ] },
+        { "spawns": [ { "enemy": "boss_erosion_phantom", "x": 0, "y": 8 } ] }
+      ],
+      "firstClearReward": { "crystals": 100, "gold": 4000, "expBooks": 6, "accountExp": 150 },
+      "repeatReward": { "crystals": 10, "gold": 1500, "expBooks": 2, "accountExp": 150 },
+      "status": "Temp",
+      "note": "계정 EXP +150·반복 결정 10은 웹 시제품 값(Prototype), 나머지는 Temp."
+    }
+  ]
+}

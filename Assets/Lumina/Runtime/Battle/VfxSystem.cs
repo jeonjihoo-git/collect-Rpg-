@@ -254,7 +254,10 @@ namespace Lumina.Runtime.Battle
             Color elc = Theme.Element(el);
             Color main = el != Element.None ? elc : Color.white;
             if (crit) main = Color.Lerp(main, Theme.Gold, 0.6f);
-            Flash(hit, new Color(main.r, main.g, main.b, 0.95f), (crit ? 2.0f : 1.45f) * k);
+            float flashSize = (crit ? 2.0f : 1.45f) * k;
+            // 베기 명중 v3: 베기 계열 일반 공격만. 준비가 안 됐거나 실패하면 기존 Flash 그대로.
+            if (!(Lumina.Core.Presentation.ImpactFlipbookPolicy.UsesBladeFlipbook(w, tier) && BladeImpactFlipbook.TryPlay(_root, hit, main, flashSize)))
+                Flash(hit, new Color(main.r, main.g, main.b, 0.95f), flashSize);
 
             switch (w)
             {

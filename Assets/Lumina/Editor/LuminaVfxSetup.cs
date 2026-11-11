@@ -95,11 +95,15 @@ namespace Lumina.EditorTools
     {
         private const string VfxDir = "Assets/Lumina/Resources/LuminaArt/Vfx/";
 
+        // 규칙을 바꾸면 이 번호를 올린다 → 이미 임포트된 텍스처도 Unity 가 자동으로 다시 임포트한다.
+        public override uint GetVersion() => 2;
+
         private void OnPreprocessTexture()
         {
             if (!assetPath.Replace('\\', '/').StartsWith(VfxDir)) return;
             var ti = (TextureImporter)assetImporter;
             ti.textureType = TextureImporterType.Default;
+            ti.textureShape = TextureImporterShape.Texture2D;   // 4×4 플립북은 2D 시트. Cube 면 Texture2D 로 로드되지 않는다.
             ti.sRGBTexture = true;
             ti.alphaSource = TextureImporterAlphaSource.FromInput;
             ti.alphaIsTransparency = true;

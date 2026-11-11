@@ -1,0 +1,21 @@
+{
+  "note": "최신 정식 로스터 16명 [최근 보고, 2026-10-16]. 확인된 값만 기입하고 나머지는 null. 전체 CharacterDef 승인 전까지 전투/편성에 사용하지 않는다. 과거 콘셉트 18인(docs/handoff 참조)과 병합 금지.",
+  "roster": [
+    { "no": 1,  "name": "세레나", "generation": "초기", "confirmedWeapon": "Longsword", "weaponNote": "장검 계열(전용 날개형 검)", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "바람의 기사 시안 / SSR 기록 있음 — 구 콘셉트(빛·마법링)와 충돌, 최종 승인 전 미확정(C-06)" },
+    { "no": 2,  "name": "레아",   "generation": "초기", "confirmedWeapon": "Spear",     "weaponNote": "창", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "초기 UI 및 전용무기 아트" },
+    { "no": 3,  "name": "노엘",   "generation": "초기", "confirmedWeapon": null, "weaponNote": null, "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "초기 9인 로스터" },
+    { "no": 4,  "name": "플로라", "generation": "초기", "confirmedWeapon": null, "weaponNote": null, "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "초기 9인 로스터" },
+    { "no": 5,  "name": "아린",   "generation": "초기", "confirmedWeapon": null, "weaponNote": null, "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "초기 9인 로스터" },
+    { "no": 6,  "name": "가론",   "generation": "초기", "confirmedWeapon": null, "weaponNote": null, "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "초기 9인 로스터" },
+    { "no": 7,  "name": "엘린",   "generation": "초기", "confirmedWeapon": "Scroll",    "weaponNote": "스크롤(태양 장식 두루마리 아트)", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "" },
+    { "no": 8,  "name": "카엘",   "generation": "초기", "confirmedWeapon": null, "weaponNote": null, "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "초기 9인 로스터" },
+    { "no": 9,  "name": "리라",   "generation": "초기", "confirmedWeapon": null, "weaponNote": null, "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "초기 9인 로스터" },
+    { "no": 10, "name": "시온",   "generation": "신규", "confirmedWeapon": "Dagger",    "weaponNote": "단검", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "여성 중심 추가" },
+    { "no": 11, "name": "카이라", "generation": "신규", "confirmedWeapon": "DualBlades","weaponNote": "쌍검", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "여성 중심 추가 — 구 콘셉트 동명 캐릭터와 병합 금지" },
+    { "no": 12, "name": "피오",   "generation": "신규", "confirmedWeapon": "Crossbow",  "weaponNote": "석궁", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "여성 중심 추가 — 구 콘셉트 동명 캐릭터와 병합 금지" },
+    { "no": 13, "name": "하루",   "generation": "신규", "confirmedWeapon": "Gauntlet",  "weaponNote": "건틀릿", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "여성 중심 추가 — 구 콘셉트 동명 캐릭터와 병합 금지" },
+    { "no": 14, "name": "로사",   "generation": "신규", "confirmedWeapon": "Axe",       "weaponNote": "도끼", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "여성 중심 추가 — 구 콘셉트 동명 캐릭터와 병합 금지" },
+    { "no": 15, "name": "네바",   "generation": "신규", "confirmedWeapon": "Launcher",  "weaponNote": "런처", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "여성 중심 추가" },
+    { "no": 16, "name": "루미엘", "generation": "신규", "confirmedWeapon": "MagicRing", "weaponNote": "마법링", "element": null, "role": null, "rarity": null, "attackType": null, "definitionVerified": false, "note": "여성 중심 추가" }
+  ]
+}

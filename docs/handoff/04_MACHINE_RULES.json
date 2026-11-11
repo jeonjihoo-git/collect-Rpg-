@@ -1,0 +1,473 @@
+{
+  "metadata": {
+    "game": "루미나 크로니클",
+    "english_name": "LUMINA CHRONICLE",
+    "as_of": "2026-10-17",
+    "purpose": "handoff_rebuild",
+    "source": "기존 GDD v2.0 및 통합 개발 현황",
+    "warning": "정식 소스 또는 최신 APK의 동작 검증을 의미하지 않음"
+  },
+  "project": {
+    "genre": "mobile real-time action character collection RPG",
+    "preferred_orientation": "landscape",
+    "party_size": 4,
+    "worldbuilding_status": "initial_UI_concept_not_canon"
+  },
+  "combat": {
+    "actions": [
+      "move",
+      "normal_attack",
+      "skill",
+      "ultimate",
+      "dodge",
+      "tag"
+    ],
+    "roles": [
+      "메인 딜러",
+      "서브 딜러",
+      "힐러",
+      "버퍼"
+    ],
+    "elements": [
+      "불",
+      "물",
+      "풀",
+      "얼음",
+      "바위",
+      "빛",
+      "어둠",
+      "바람",
+      "번개"
+    ],
+    "attack_types": [
+      "물리",
+      "마법"
+    ],
+    "elemental_reactions": [
+      {
+        "elements": [
+          "불",
+          "풀"
+        ],
+        "name": "연소",
+        "prototype_multiplier": 1.7,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "물",
+          "번개"
+        ],
+        "name": "감전 확산",
+        "prototype_multiplier": 1.6,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "물",
+          "얼음"
+        ],
+        "name": "빙결",
+        "prototype_multiplier": 1.5,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "바람",
+          "불"
+        ],
+        "name": "화염폭풍",
+        "prototype_multiplier": 1.9,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "바람",
+          "번개"
+        ],
+        "name": "뇌폭풍",
+        "prototype_multiplier": 1.8,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "바위",
+          "불"
+        ],
+        "name": "용암",
+        "prototype_multiplier": 1.8,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "바위",
+          "얼음"
+        ],
+        "name": "결빙 방벽",
+        "prototype_multiplier": 1.4,
+        "effect_type": "shield"
+      },
+      {
+        "elements": [
+          "물",
+          "풀"
+        ],
+        "name": "급성장",
+        "prototype_multiplier": 1.3,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "빛",
+          "어둠"
+        ],
+        "name": "상극",
+        "prototype_multiplier": 2.0,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "빛",
+          "불"
+        ],
+        "name": "정화의 불꽃",
+        "prototype_multiplier": 1.5,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "어둠",
+          "얼음"
+        ],
+        "name": "흑빙",
+        "prototype_multiplier": 1.6,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "바위",
+          "번개"
+        ],
+        "name": "대지진동",
+        "prototype_multiplier": 1.7,
+        "effect_type": "damage"
+      },
+      {
+        "elements": [
+          "풀",
+          "번개"
+        ],
+        "name": "감전목",
+        "prototype_multiplier": 1.5,
+        "effect_type": "damage"
+      }
+    ],
+    "reaction_pairs_commutative": true,
+    "prototype": {
+      "time_limit_seconds": 180,
+      "resonance_required_ultimate": 100,
+      "resonance_gain_normal": 4,
+      "resonance_gain_skill": 10,
+      "resonance_gain_perfect_dodge": 18,
+      "resonance_gain_tag": 3,
+      "break_gauge_normal_hard_hell": [
+        100,
+        150,
+        220
+      ],
+      "break_stagger_seconds": 5,
+      "break_damage_multiplier": 1.5
+    },
+    "auto_battle": {
+      "location": "party_setup_after_stage_select",
+      "requires_prior_clear": true,
+      "clear_record_field": "ClearRecord(stageId)",
+      "auto_actions": [
+        "normal_attack",
+        "skill",
+        "dodge",
+        "ultimate"
+      ],
+      "ai_tactics_finalized": false
+    }
+  },
+  "weapons": {
+    "count": 16,
+    "melee": [
+      "장검",
+      "단검",
+      "대검",
+      "쌍검",
+      "창",
+      "건틀릿",
+      "낫",
+      "도끼"
+    ],
+    "ranged": [
+      "활",
+      "석궁",
+      "총",
+      "런처"
+    ],
+    "magic": [
+      "지팡이",
+      "마법책",
+      "스크롤",
+      "마법링"
+    ],
+    "sound_requirement": "distinct physical sound per weapon, not same chime"
+  },
+  "roster": {
+    "runtime_candidate_count": 16,
+    "status": "recently_reported_not_retested",
+    "characters": [
+      {
+        "name": "세레나",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": "장검 계열",
+        "note": "바람의 기사 시안",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "레아",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": "창",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "노엘",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": null,
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "플로라",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": null,
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "아린",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": null,
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "가론",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": null,
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "엘린",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": "스크롤",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "카엘",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": null,
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "리라",
+        "generation": "초기",
+        "confirmed_weapon_or_concept": null,
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "시온",
+        "generation": "신규",
+        "confirmed_weapon_or_concept": "단검",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "카이라",
+        "generation": "신규",
+        "confirmed_weapon_or_concept": "쌍검",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "피오",
+        "generation": "신규",
+        "confirmed_weapon_or_concept": "석궁",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "하루",
+        "generation": "신규",
+        "confirmed_weapon_or_concept": "건틀릿",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "로사",
+        "generation": "신규",
+        "confirmed_weapon_or_concept": "도끼",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "네바",
+        "generation": "신규",
+        "confirmed_weapon_or_concept": "런처",
+        "note": "",
+        "full_character_definition_verified": false
+      },
+      {
+        "name": "루미엘",
+        "generation": "신규",
+        "confirmed_weapon_or_concept": "마법링",
+        "note": "",
+        "full_character_definition_verified": false
+      }
+    ],
+    "legacy_art_concept_names": [
+      "세레나",
+      "테라녹",
+      "이그니아",
+      "아쿠엘",
+      "볼트린",
+      "녹티아",
+      "카이라",
+      "노아",
+      "벨라",
+      "실바",
+      "미라",
+      "한나",
+      "로사",
+      "에린",
+      "피오",
+      "셀리",
+      "루미",
+      "하루"
+    ],
+    "collision_warning": "세레나 및 이름 중복 캐릭터는 이전 콘셉트와 최신 로스터를 자동 병합하지 말 것"
+  },
+  "progression": {
+    "base_level_cap": 30,
+    "breakthrough_max": 6,
+    "level_cap_step": 5,
+    "level_cap_max": 60,
+    "duplicates_needed_for_max_breakthrough": 6,
+    "skill_max_level": 10,
+    "skill_categories": [
+      "일반 공격",
+      "고유 스킬",
+      "궁극기"
+    ],
+    "rarities": [
+      "N",
+      "R",
+      "SR",
+      "SSR",
+      "UR"
+    ],
+    "UR_directly_summonable": false,
+    "UR_from": "SSR evolution, exact cost unknown"
+  },
+  "equipment": {
+    "exclusive_weapon_gacha_only": true,
+    "artifact_slots": [
+      "모자",
+      "장갑",
+      "신발",
+      "갑옷"
+    ],
+    "artifact_acquisition": "elemental_artifact_dungeon",
+    "artifact_max_enhance": 15,
+    "initial_substat_min": 1,
+    "initial_substat_max": 4,
+    "max_substat_types": 4,
+    "initial_one_substat_additions_by_plus15": 3,
+    "initial_four_substats_upgrade_values": true,
+    "two_three_substats_exact_timing": null,
+    "legacy_five_item_plus5_deprecated": true
+  },
+  "gacha": {
+    "character_base_rates_pct": {
+      "N": 70,
+      "R": 20,
+      "SR": 9,
+      "SSR": 1,
+      "UR": 0
+    },
+    "ssr_soft_pity_starts_at_pull": 100,
+    "ssr_hard_pity_pull": 200,
+    "soft_pity_exact_formula": null,
+    "pickup_miss_next_ssr_pickup_guaranteed": true,
+    "character_weapon_guarantee_separate": true,
+    "standard_banner_pickup_guarantee": false,
+    "character_ssr_animation": "황금 별자리 각성",
+    "weapon_ssr_animation": "금빛 봉인 파괴",
+    "weapon_banner_full_rate_table": null
+  },
+  "content": {
+    "unlock_basis": "account_level",
+    "artifact_dungeon_exists_in_design": true,
+    "story_chapters_discussed": 90,
+    "full_story_chapter_files_verified": false,
+    "prototype_unlock_levels": {
+      "스토리 일반": 1,
+      "무한의 탑": 15,
+      "차원의 균열": 18,
+      "스토리 하드": 20,
+      "아레나": 20,
+      "레이드": 25,
+      "길드 레이드": 30
+    }
+  },
+  "ui": {
+    "screen_count": 25,
+    "character_detail_only_selected_fullbody": true,
+    "auto_battle_toggle_location": "party_setup",
+    "screen_names": [
+      "메인 로비",
+      "캐릭터 목록",
+      "캐릭터 상세",
+      "캐릭터 레벨 업",
+      "캐릭터 돌파",
+      "스킬 강화",
+      "장비/유물",
+      "SSR→UR 진화",
+      "스테이지 선택",
+      "파티 편성",
+      "소환 배너",
+      "소환 결과",
+      "실시간 전투 HUD",
+      "전투 결과",
+      "캐릭터 도감",
+      "속성 반응 도감",
+      "가방",
+      "임무",
+      "상점",
+      "콘텐츠 안내",
+      "우편함",
+      "계정/설정",
+      "타이틀/로그인/서버",
+      "로딩/네트워크 오류",
+      "튜토리얼/대화"
+    ]
+  },
+  "unconfirmed": [
+    "최신 전체 소스코드/실행 모바일 앱",
+    "16명 전체 CharacterDef·스킬·VFX 원본",
+    "90개 장 원문/보상/적 구성",
+    "정식 확률업 곡선 및 전용무기 소환 세부 수치",
+    "유물 +15 구간/강화 비용/세트 보너스/드롭률",
+    "서버·결제·실시간 협동·PvP 구현",
+    "무기별 효과음 실청음 및 만족도"
+  ]
+}
